@@ -1,0 +1,53 @@
+raw_format,format_code
+"",
+.csv,CSV
+.pdf,PDF
+.xls,XLS
+.xlxs,XLSX
+.zip,ZIP
+API,API
+CSV,CSV
+DOCX,DOCX
+DWG und FBX Format,DWG
+GEOJSON-Datei,GEOJSON
+GTFS,GTFS
+GeoJSON,GEOJSON
+HTML,HTML
+JSON,JSON
+KML,KML
+OBJ,OBJ
+ODS,ODS
+PDF,PDF
+RSS,RSS
+TIF,TIFF
+TXT,TXT
+URL,HTML
+WFS,WFS
+WMS,WMS
+WMTS,WMTS
+Webseite,HTML
+XLS,XLS
+XLSX,XLSX
+XML,XML
+ZIP,ZIP
+gjson,GEOJSON
+gpx,GPX
+jrss,RSS
+jsonld,RDF
+"kml, kmz",KML
+nq,RDF
+pbf,PBF
+shape,SHP
+ttl,RDF
+webseite,HTML
+zip:DHX,ZIP
+zip:DXF,DXF
+zip:KMZ,KML
+zip:SHP,SHP
+zip:csv,CSV
+"zip:dat, zip:id, zip:map, zip:tab",MAPINFO
+"zip:dbf, zip:prj, zip:shp, zip:shx",SHP
+zip:dxf,DXF
+"zip:gml, zip:xsd",GML
+zip:pdf,PDF
+zip:shp,SHP

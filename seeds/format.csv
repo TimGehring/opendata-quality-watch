@@ -1,0 +1,30 @@
+format_code,label,machine_readable,open_data_stars
+API,Programmierschnittstelle (API),true,3
+CSV,CSV,true,3
+DOCX,Word-Dokument (DOCX),false,1
+DWG,AutoCAD-Zeichnung (DWG/FBX),true,2
+DXF,AutoCAD-Austauschformat (DXF),true,3
+GEOJSON,GeoJSON,true,3
+GML,Geography Markup Language (GML),true,3
+GPX,GPS Exchange Format (GPX),true,3
+GTFS,GTFS-Fahrplandaten,true,3
+HTML,Webseite (HTML),false,1
+JSON,JSON,true,3
+KML,KML/KMZ,true,3
+MAPINFO,MapInfo-Tabelle (TAB),true,2
+OBJ,3D-Modell (OBJ),true,3
+ODS,OpenDocument-Tabelle (ODS),true,3
+PBF,Protocolbuffer Binary Format (PBF),true,3
+PDF,PDF,false,1
+RDF,RDF (Turtle/N-Quads/JSON-LD),true,4
+RSS,RSS-Feed,true,3
+SHP,Shapefile (SHP),true,3
+TIFF,Rasterbild (TIFF),false,1
+TXT,Textdatei (TXT),false,1
+WFS,Web Feature Service (WFS),true,3
+WMS,Web Map Service (WMS) – Bild-Kartendienst,false,1
+WMTS,Web Map Tile Service (WMTS) – Bild-Kacheldienst,false,1
+XLS,Excel (XLS),true,2
+XLSX,Excel (XLSX),true,2
+XML,XML,true,3
+ZIP,ZIP-Archiv (Inhalt unbekannt),false,

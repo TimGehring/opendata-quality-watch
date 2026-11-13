@@ -1,0 +1,9 @@
+[project]
+name = "opendata-quality-watch"
+version = "0.1.0"
+description = "Metadata quality monitoring for the Berlin open data portal (datenregister.berlin.de)"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "requests>=2.34.2",
+]
