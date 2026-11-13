@@ -77,7 +77,16 @@ die Handprüfung (`manually_verified`) stehen in `seeds/series_override.csv`.
 
 ## KI-Nutzung
 
-_Platzhalter – wird ergänzt._
+Dieses Projekt wurde mit KI-Unterstützung erstellt. Die Nutzung ist hier offengelegt, wie es die Projektvorgabe verlangt.
+
+- **Claude (Chat):** Themenwahl, Projektplanung, Analyse des Datenprofils, ER-Modell, alle Analyse-Abfragen in `sql/analysis/` sowie deren Erklärungen.
+- **Claude Code:** Harvester, Transform-Skript, Datenbankschema, Lade- und Deploy-Skripte.
+- **Kontrolle:** Die Abfragen werden lokal mit `tests/test_views_sqlite.py` gegen die exportierten Tabellen geprüft (z. B. Summen = Anzahl Datensätze). Einzelne Ergebnisse werden stichprobenartig im Portal nachgesehen. Eine Hypothese der KI (`temporal_granularity` = Aktualisierungsrhythmus) wurde anhand der Daten widerlegt und verworfen.
+- Alle Entscheidungen und Ergebnisse hat der Autor nachvollzogen und kann sie erklären.
+
+## Analysen
+
+`sql/analysis/` enthält die Views für die Analysefragen Q1–Q9 und den Qualitätsscore (`v_dataset_score`). In Databricks anlegen mit `scripts/deploy_databricks.sh analysis`. Lokaler Test ohne Databricks: `python3 tests/test_views_sqlite.py`.
 
 ## Lizenz
 

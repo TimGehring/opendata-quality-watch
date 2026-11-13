@@ -126,11 +126,19 @@ PY
   echo "  All row counts match."
 }
 
+step_analysis() {
+  local file
+  for file in sql/analysis/*.sql; do
+    run_sql_file "$file"
+  done
+}
+
 case "${1:-all}" in
-  all)    step_setup; step_upload; step_load; step_verify ;;
+  all)    step_setup; step_upload; step_load; step_verify; step_analysis ;;
+  analysis) step_analysis ;;
   setup)  step_setup ;;
   upload) step_upload ;;
   load)   step_load ;;
   verify) step_verify ;;
-  *) echo "Usage: $0 [all|setup|upload|load|verify]" >&2; exit 2 ;;
+  *) echo "Usage: $0 [all|setup|upload|load|verify|analysis]" >&2; exit 2 ;;
 esac
