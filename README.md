@@ -33,7 +33,7 @@ uv run python harvester/profile_fields.py data/raw/ckan_snapshot_<YYYY-MM-DD>.js
 
 Voraussetzungen: [uv](https://docs.astral.sh/uv/), ein Databricks-Workspace (Free Edition) mit
 Unity Catalog und die [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/),
-angemeldet per `databricks auth login`.
+angemeldet per `databricks auth login`, sowie `jq`.
 
 1. **Harvest** – alle Metadaten als Snapshot laden:
    ```bash
@@ -52,18 +52,20 @@ angemeldet per `databricks auth login`.
    Es werden nur Einträge mit `berlin_type = datensatz` übernommen und keine Personendaten
    gespeichert (nur `has_maintainer` / `has_contact_email`).
 
-3. **Volume anlegen** (einmalig) – in Databricks die ersten beiden Zellen von
-   `notebooks/01_load_tables.sql` ausführen (`CREATE SCHEMA` / `CREATE VOLUME`).
-
-4. **Upload** – CSV-Dateien und `schema.sql` ins Volume kopieren:
+3. **Databricks** – Schema, Volume, Upload, Tabellen und Zeilenvergleich in einem Schritt:
    ```bash
-   ./scripts/upload.sh
+   ./scripts/deploy_databricks.sh          # oder einzeln: setup | upload | load | verify
    ```
-   Ziel: `/Volumes/workspace/opendata/raw/tables/`
+   Das Skript legt `workspace.opendata` und das Volume `raw` an (idempotent), lädt die CSVs
+   mit `scripts/upload.sh` nach `/Volumes/workspace/opendata/raw/tables/`, führt
+   `sql/schema.sql` und `notebooks/01_load_tables.sql` Anweisung für Anweisung über die
+   Statement Execution API aus (Abbruch beim ersten Fehler) und vergleicht am Ende die
+   Zeilenzahlen aller 14 Tabellen mit den lokalen CSVs. Es nutzt das erste SQL-Warehouse
+   des Workspace, ein anderes über `DATABRICKS_WAREHOUSE_ID`.
 
-5. **Notebooks** – das Repository als Git-Ordner in den Workspace holen, dann
+4. **Notebooks** – das Repository als Git-Ordner in den Workspace holen, dann
    - `notebooks/00_egress_test.py`: prüft, ob der Cluster die CKAN-API erreicht (Ticket 1.2),
-   - `notebooks/01_load_tables.sql`: baut die Tabellen in `workspace.opendata` neu auf
+   - `notebooks/01_load_tables.sql`: Alternative zu Schritt 3 im Browser, baut die Tabellen in `workspace.opendata` neu auf
      (`sql/schema.sql`), lädt alle CSVs per `read_files` und zeigt die Zeilenzahlen.
 
 Datenmodell: Publisher werden nur bei identischem Namen (nach trim/lower/Leerzeichen)
