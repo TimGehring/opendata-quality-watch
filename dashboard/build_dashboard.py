@@ -15,7 +15,8 @@ SNAPSHOT = "13.11.2026"
 # Der Untertitel ist fester Text und folgt dem Quellen-Filter nicht.
 LINKS_CHECKED = "5.396"
 RESOURCES_TOTAL = "6.228"
-REPO_HINT = "Repository **opendata-quality-watch** (Link wird nach Veröffentlichung auf GitHub ergänzt)"
+REPO_HINT = ("Repository: [github.com/TimGehring/opendata-quality-watch](https://github.com/TimGehring/opendata-quality-watch) (MIT)  \n"
+             "Ergebnisse ohne Login: [timgehring.github.io/opendata-quality-watch](https://timgehring.github.io/opendata-quality-watch/)")
 
 # ---------------------------------------------------------------- Datasets
 

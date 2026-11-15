@@ -2088,7 +2088,7 @@
                 "Das Projekt wurde mit KI-Unterstützung erstellt: **Claude (Chat)** für Planung, ER-Modell und SQL-Analysen, **Claude Code** für Harvester, Transform, Deploy-Skripte, Link-Check und dieses Dashboard. Die Abfragen werden lokal gegen die exportierten Tabellen getestet und Ergebnisse stichprobenhaft im Portal nachgesehen. Alle Entscheidungen hat der Autor nachvollzogen.\n",
                 "\n",
                 "### Quellcode\n",
-                "Repository **opendata-quality-watch** (Link wird nach Veröffentlichung auf GitHub ergänzt)\n"
+                "Repository: [github.com/TimGehring/opendata-quality-watch](https://github.com/TimGehring/opendata-quality-watch) (MIT)  \nErgebnisse ohne Login: [timgehring.github.io/opendata-quality-watch](https://timgehring.github.io/opendata-quality-watch/)\n"
               ]
             }
           },
