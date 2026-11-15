@@ -6,6 +6,7 @@ SELECT
   ROUND(AVG(quality_score_without_links), 1) AS avg_score_without_links,
   ROUND(AVG(quality_score), 1)               AS avg_score,
   ROUND(AVG(time_points), 1)                 AS avg_time,
+  ROUND(AVG(reach_points), 1)                AS avg_reach,
   ROUND(AVG(machine_points), 1)              AS avg_machine,
   ROUND(AVG(completeness_points), 1)         AS avg_completeness
 FROM v_dataset_score
@@ -17,14 +18,19 @@ GROUP BY CASE WHEN is_harvested THEN 'automatisch geerntet' ELSE 'händisch / pe
 CREATE OR REPLACE VIEW q8_publisher_ranking AS
 SELECT
   publisher_name,
+  publisher_short,
   COUNT(*)                                   AS dataset_count,
   ROUND(AVG(quality_score_without_links), 1) AS avg_score_without_links,
   ROUND(AVG(quality_score), 1)               AS avg_score,
+  ROUND(AVG(time_points), 1)                 AS avg_time,
+  ROUND(AVG(reach_points), 1)                AS avg_reach,
+  ROUND(AVG(machine_points), 1)              AS avg_machine,
+  ROUND(AVG(completeness_points), 1)         AS avg_completeness,
   ROUND(100 * AVG(1 - has_date_updated), 1)  AS missing_date_pct,
   ROUND(100.0 * SUM(CASE WHEN resources_machine_readable = 0 THEN 1 ELSE 0 END) / COUNT(*), 1) AS not_machine_readable_pct
 FROM v_dataset_score
 WHERE publisher_name IS NOT NULL
-GROUP BY publisher_name
+GROUP BY publisher_name, publisher_short
 HAVING COUNT(*) >= 10
 ORDER BY avg_score_without_links ASC;
 
@@ -50,3 +56,11 @@ SELECT
   ROUND(100.0 * SUM(CASE WHEN resources_machine_readable > 0 THEN 1 ELSE 0 END) / COUNT(*), 1) AS machine_readable_pct
 FROM v_dataset_score
 GROUP BY CASE WHEN hvd_code IS NOT NULL THEN 'High-Value-Datensatz' ELSE 'übrige' END;
+
+-- Themen je Datensatz in Klartext (n:m), Grundlage für den Themen-Filter im Dashboard.
+-- Datensätze ohne Thema erscheinen als "(ohne Thema)", damit auch sie auswählbar sind.
+CREATE OR REPLACE VIEW v_dataset_theme AS
+SELECT d.dataset_id, COALESCE(t.label, '(ohne Thema)') AS theme
+FROM dataset d
+LEFT JOIN dataset_theme dt ON dt.dataset_id = d.dataset_id
+LEFT JOIN theme t          ON t.theme_id    = dt.theme_id;
