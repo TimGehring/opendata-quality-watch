@@ -5,8 +5,11 @@
 #   2. upload  copy data/tables/*.csv and sql/schema.sql into the volume (scripts/upload.sh)
 #   3. load    rebuild all tables (sql/schema.sql) and load them (notebooks/01_load_tables.sql)
 #   4. verify  compare row counts in Databricks with the local CSV files
+#   5. analysis  create/replace all views from sql/analysis/*.sql
+#   6. dashboard build dashboard/opendata_quality.lvdash.json and create or update the
+#                AI/BI dashboard (ID in dashboard/dashboard_id.txt), then publish it
 #
-# Usage:   ./scripts/deploy_databricks.sh [all|setup|upload|load|verify]   (default: all)
+# Usage:   ./scripts/deploy_databricks.sh [all|setup|upload|load|verify|analysis|dashboard]   (default: all)
 # Needs:   databricks CLI (logged in via `databricks auth login`), jq, python3,
 #          data/tables/*.csv (harvester/transform.py).
 # Options: DATABRICKS_WAREHOUSE_ID  SQL warehouse to use (default: first warehouse in the workspace)
@@ -133,6 +136,29 @@ step_analysis() {
   done
 }
 
+DASHBOARD_NAME="Open Data Berlin – Metadatenqualität"
+DASHBOARD_FILE="dashboard/opendata_quality.lvdash.json"
+DASHBOARD_ID_FILE="dashboard/dashboard_id.txt"
+
+step_dashboard() {
+  local body id
+  python3 dashboard/build_dashboard.py
+  body=$(jq -n --arg n "$DASHBOARD_NAME" --arg w "$WAREHOUSE_ID" --rawfile s "$DASHBOARD_FILE" \
+    '{display_name: $n, warehouse_id: $w, serialized_dashboard: $s}')
+  if [ -s "$DASHBOARD_ID_FILE" ]; then
+    id=$(cat "$DASHBOARD_ID_FILE")
+    echo "== Dashboard update $id"
+    databricks lakeview update "$id" --json "$body" -o json >/dev/null
+  else
+    echo "== Dashboard create"
+    id=$(databricks lakeview create --json "$body" -o json | jq -r '.dashboard_id')
+    echo "$id" > "$DASHBOARD_ID_FILE"
+  fi
+  # embed_credentials: viewers see the data with the publisher's permissions
+  databricks lakeview publish "$id" --embed-credentials --warehouse-id "$WAREHOUSE_ID" -o json >/dev/null
+  echo "  published: $(databricks auth describe -o json 2>/dev/null | jq -r '.details.host // empty')/dashboardsv3/$id/published"
+}
+
 case "${1:-all}" in
   all)    step_setup; step_upload; step_load; step_verify; step_analysis ;;
   analysis) step_analysis ;;
@@ -140,5 +166,6 @@ case "${1:-all}" in
   upload) step_upload ;;
   load)   step_load ;;
   verify) step_verify ;;
-  *) echo "Usage: $0 [all|setup|upload|load|verify|analysis]" >&2; exit 2 ;;
+  dashboard) step_dashboard ;;
+  *) echo "Usage: $0 [all|setup|upload|load|verify|analysis|dashboard]" >&2; exit 2 ;;
 esac

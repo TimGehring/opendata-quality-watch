@@ -16,7 +16,7 @@ und ein Dashboard macht die Entwicklung über die Zeit sichtbar.
 | `seeds/`      | Manuell gepflegte Stammdaten (Formate, Format-Aliase, HVD-Kategorien) |
 | `scripts/`    | Hilfsskripte (Upload nach Databricks)           |
 | `notebooks/`  | Databricks-Notebooks (Egress-Test, Laden der Tabellen) |
-| `dashboard/`  | Visualisierung                                  |
+| `dashboard/`  | AI/BI-Dashboard als Code (`opendata_quality.lvdash.json`, erzeugt von `build_dashboard.py`), Screenshots |
 | `data/raw/`   | Snapshots (nicht im Git)                        |
 | `data/tables/`| Normalisierte CSV-Tabellen (nicht im Git)       |
 | `data/review/`| Listen zur manuellen Prüfung (nicht im Git)     |
@@ -87,6 +87,23 @@ Dieses Projekt wurde mit KI-Unterstützung erstellt. Die Nutzung ist hier offeng
 ## Analysen
 
 `sql/analysis/` enthält die Views für die Analysefragen Q1–Q9 und den Qualitätsscore (`v_dataset_score`). In Databricks anlegen mit `scripts/deploy_databricks.sh analysis`. Lokaler Test ohne Databricks: `python3 tests/test_views_sqlite.py`.
+
+## Dashboard
+
+Das Databricks AI/BI-Dashboard (7 Seiten, globaler Filter „Quelle“) liegt als Code in
+`dashboard/opendata_quality.lvdash.json`. Die Datei wird von `dashboard/build_dashboard.py`
+erzeugt und nicht von Hand bearbeitet. Alle Datasets lesen nur Views aus `workspace.opendata`.
+
+```bash
+./scripts/deploy_databricks.sh analysis    # Views anlegen (vorher: python3 tests/test_views_sqlite.py)
+./scripts/deploy_databricks.sh dashboard   # JSON bauen, Dashboard anlegen/aktualisieren, veröffentlichen
+```
+
+Beim ersten Lauf wird das Dashboard mit `databricks lakeview create` angelegt und die ID in
+`dashboard/dashboard_id.txt` gespeichert. Danach aktualisiert `databricks lakeview update` dasselbe
+Dashboard. Veröffentlicht wird mit eingebetteten Zugangsdaten (`--embed-credentials`).
+Ansehen können es nur angemeldete Nutzer des Workspace. Für alle anderen liegen Screenshots
+in `dashboard/screenshots/`.
 
 ## Lizenz
 

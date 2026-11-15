@@ -1,8 +1,11 @@
 # Lokaler Smoke-Test: lädt data/tables/*.csv in SQLite und führt alle Views aus sql/analysis aus.
 # Aufruf aus dem Repo-Root: python3 tests/test_views_sqlite.py
 import sqlite3,csv,glob,os,re,sys
+from urllib.parse import urlsplit
 con=sqlite3.connect(":memory:")
 con.create_function("year",1,lambda d: int(d[:4]) if d else None)
+# Databricks parse_url(url, part) nachbilden, hier nur HOST
+con.create_function("parse_url",2,lambda u,part: (urlsplit(u).hostname if u and part=="HOST" else None))
 for f in glob.glob("data/tables/*.csv"):
   t=os.path.basename(f)[:-4]
   rows=list(csv.reader(open(f,encoding="utf-8")))
@@ -26,7 +29,12 @@ def show(q,lim=30):
   cur=con.execute(q); print(" | ".join(c[0] for c in cur.description))
   for r in cur.fetchmany(lim): print(r)
   print()
-for v in ["q1_data_age ORDER BY source_label, age_bucket","q2_time_conflicts","q3a_series_fragmentation","q3b_possibly_discontinued","q4a_format_distribution ORDER BY resource_count DESC","q4b_machine_readable_by_source","q5_completeness","q6_link_reachability","q7_harvested_vs_manual","q8_publisher_ranking","q9_theme_ranking","q8b_hvd_vs_rest"]:
+for v in ["q1_data_age ORDER BY source_label, age_bucket","q2_time_conflicts","q3a_series_fragmentation","q3b_possibly_discontinued","q4a_format_distribution ORDER BY resource_count DESC","q4b_machine_readable_by_source","q5_completeness","q6_link_reachability","q7_harvested_vs_manual","q8_publisher_ranking","q9_theme_ranking","q8b_hvd_vs_rest","q6b_broken_hosts ORDER BY broken DESC"]:
   print("==",v); show("SELECT * FROM "+v)
 show("SELECT COUNT(*), ROUND(AVG(quality_score_without_links),1), MIN(quality_score_without_links), MAX(quality_score_without_links) FROM v_dataset_score")
 show("SELECT SUM(dataset_count) FROM q1_data_age")
+# reasons: Stichprobe und Plausibilität (NULL nur bei vollen 100 Punkten bzw. 75 ohne Links)
+show("SELECT reasons, COUNT(*) n FROM v_dataset_score GROUP BY reasons ORDER BY n DESC",12)
+show("SELECT COUNT(*) FROM v_dataset_score WHERE reasons IS NULL AND NOT (quality_score = 100)")
+show("SELECT SUM(checked_links), SUM(broken) FROM q6b_broken_hosts")
+show("SELECT COUNT(DISTINCT dataset_id), COUNT(*) FROM v_dataset_theme")

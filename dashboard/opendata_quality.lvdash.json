@@ -1,0 +1,2349 @@
+{
+  "datasets": [
+    {
+      "name": "ds_score",
+      "displayName": "Datensätze mit Score",
+      "queryLines": [
+        "SELECT dataset_id, name, title, publisher_name, source_label,\n",
+        "       quality_score, quality_score_without_links,\n",
+        "       time_points, reach_points, machine_points, completeness_points,\n",
+        "       has_machine_readable, has_date_updated, links_checked, links_broken\n",
+        "FROM workspace.opendata.v_dataset_score"
+      ]
+    },
+    {
+      "name": "ds_score_by_source",
+      "displayName": "Score je Quelle",
+      "queryLines": [
+        "SELECT source_label, quality_score\n",
+        "FROM workspace.opendata.v_dataset_score\n",
+        "WHERE source_label <> 'unbekannt'"
+      ]
+    },
+    {
+      "name": "ds_detail",
+      "displayName": "Datensatz-Detail",
+      "queryLines": [
+        "SELECT title, publisher_name, source_label, quality_score, quality_score_without_links,\n",
+        "       time_points, reach_points, machine_points, completeness_points, reasons, portal_url\n",
+        "FROM workspace.opendata.v_dataset_score\n",
+        "WHERE :thema = 'Alle Themen'\n",
+        "   OR dataset_id IN (SELECT dataset_id FROM workspace.opendata.v_dataset_theme WHERE theme = :thema)"
+      ],
+      "parameters": [
+        {
+          "displayName": "Thema",
+          "keyword": "thema",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Alle Themen"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ds_themes",
+      "displayName": "Themenliste (Filter)",
+      "queryLines": [
+        "SELECT 'Alle Themen' AS theme\n",
+        "UNION ALL\n",
+        "SELECT DISTINCT theme FROM workspace.opendata.v_dataset_theme"
+      ]
+    },
+    {
+      "name": "ds_q7_long",
+      "displayName": "Q7 Teilpunkte",
+      "queryLines": [
+        "SELECT origin, 'Zeitangaben' AS teil, avg_time AS punkte FROM workspace.opendata.q7_harvested_vs_manual\n",
+        "UNION ALL SELECT origin, 'Erreichbarkeit', avg_reach FROM workspace.opendata.q7_harvested_vs_manual\n",
+        "UNION ALL SELECT origin, 'Maschinenlesbarkeit', avg_machine FROM workspace.opendata.q7_harvested_vs_manual\n",
+        "UNION ALL SELECT origin, 'Vollständigkeit', avg_completeness FROM workspace.opendata.q7_harvested_vs_manual"
+      ]
+    },
+    {
+      "name": "ds_q4a_top",
+      "displayName": "Q4a Formate Top 12",
+      "queryLines": [
+        "WITH ranked AS (\n",
+        "  SELECT format, machine_readable, resource_count,\n",
+        "         ROW_NUMBER() OVER (ORDER BY resource_count DESC) AS rang\n",
+        "  FROM workspace.opendata.q4a_format_distribution\n",
+        ")\n",
+        "SELECT CASE WHEN rang <= 12 THEN format ELSE 'übrige Formate' END AS format,\n",
+        "       CASE WHEN rang > 12 THEN 'gemischt (übrige)'\n",
+        "            WHEN machine_readable THEN 'maschinenlesbar'\n",
+        "            WHEN NOT machine_readable THEN 'nicht maschinenlesbar'\n",
+        "            ELSE 'ohne Formatangabe' END AS lesbarkeit,\n",
+        "       SUM(resource_count) AS ressourcen\n",
+        "FROM ranked\n",
+        "GROUP BY 1, 2"
+      ]
+    },
+    {
+      "name": "ds_q8b_long",
+      "displayName": "Q8b High-Value vs. übrige",
+      "queryLines": [
+        "SELECT group_name, 'Ø Score ohne Links' AS kennzahl, avg_score_without_links AS wert FROM workspace.opendata.q8b_hvd_vs_rest\n",
+        "UNION ALL\n",
+        "SELECT group_name, '% mit maschinenlesbarer Ressource', machine_readable_pct FROM workspace.opendata.q8b_hvd_vs_rest"
+      ]
+    },
+    {
+      "name": "ds_q1",
+      "displayName": "Q1 Datenstand",
+      "queryLines": [
+        "SELECT source_label, age_bucket, dataset_count, share_in_source_pct FROM workspace.opendata.q1_data_age"
+      ]
+    },
+    {
+      "name": "ds_q2",
+      "displayName": "Q2 Widersprüche",
+      "queryLines": [
+        "SELECT rule, source_label, dataset_count FROM workspace.opendata.q2_time_conflicts"
+      ]
+    },
+    {
+      "name": "ds_q3a",
+      "displayName": "Q3a Zeitreihen",
+      "queryLines": [
+        "SELECT source_label, dataset_count, in_series, in_series_pct, series_count FROM workspace.opendata.q3a_series_fragmentation"
+      ]
+    },
+    {
+      "name": "ds_q3b",
+      "displayName": "Q3b eingestellte Reihen",
+      "queryLines": [
+        "SELECT series_key, datasets, first_year, last_year FROM workspace.opendata.q3b_possibly_discontinued"
+      ]
+    },
+    {
+      "name": "ds_q6",
+      "displayName": "Q6 Erreichbarkeit",
+      "queryLines": [
+        "SELECT source_label, checked_resources, reachable, broken, broken_pct FROM workspace.opendata.q6_link_reachability"
+      ]
+    },
+    {
+      "name": "ds_q6b",
+      "displayName": "Q6b Hosts",
+      "queryLines": [
+        "SELECT host, checked_links, broken, broken_pct FROM workspace.opendata.q6b_broken_hosts"
+      ]
+    },
+    {
+      "name": "ds_q8",
+      "displayName": "Q8 Bereitsteller",
+      "queryLines": [
+        "SELECT publisher_name, dataset_count, avg_score_without_links, avg_score,\n",
+        "       avg_time, avg_reach, avg_machine, avg_completeness, missing_date_pct, not_machine_readable_pct\n",
+        "FROM workspace.opendata.q8_publisher_ranking"
+      ]
+    },
+    {
+      "name": "ds_q9",
+      "displayName": "Q9 Themen",
+      "queryLines": [
+        "SELECT theme, dataset_count, avg_score_without_links, avg_score FROM workspace.opendata.q9_theme_ranking"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "ueberblick",
+      "displayName": "Überblick",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "text_01",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Metadatenqualität im Berliner Open-Data-Portal\n",
+                "Dieses Dashboard misst, wie gut die Metadaten der Datensätze auf daten.berlin.de sind: ob Zeitangaben stimmen, Ressourcen maschinenlesbar und Links erreichbar sind und ob die Beschreibung vollständig ist. Grundlage ist ein eigener Qualitätsscore (0–100) aus vier gleich gewichteten Kriterien, aufgeteilt nach Quelle, Bereitsteller und Thema.\n",
+                "\n",
+                "**Stand: Snapshot 13.11.2026, 2.595 Datensätze.**\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "text_02",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Wichtigste Befunde\n",
+                "- **Stromnetz Berlin:** Alle 250 geernteten Datensätze verweisen nur auf tote Links (HTTP 404), obwohl ihre Metadaten überdurchschnittlich vollständig sind (Ø 21,9 von 25 Punkten, gesamt 19,7).\n",
+                "- **EU-High-Value-Datensätze:** nur 39,6 % maschinenlesbar (übrige 64,6 %). Von den nicht maschinenlesbaren bieten gut zwei Drittel nur einen Kartenbild-Dienst (WMS) an.\n",
+                "- **Geodaten aus dem FIS-Broker:** 59 % haben keine maschinenlesbare Ressource, 48 % gibt es nur als Kartenbild (WMS).\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_03",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_score",
+                  "fields": [
+                    {
+                      "name": "wert",
+                      "expression": "COUNT(`dataset_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "Datensätze"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "wert",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_04",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_score",
+                  "fields": [
+                    {
+                      "name": "wert",
+                      "expression": "AVG(`quality_score`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "Ø Qualitätsscore (mit Links)",
+                "showDescription": true,
+                "description": "Datensätze mit geprüften Links"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "wert",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 6,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_05",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_score",
+                  "fields": [
+                    {
+                      "name": "wert",
+                      "expression": "AVG(`has_machine_readable`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "maschinenlesbar",
+                "showDescription": true,
+                "description": "≥ 1 maschinenlesbare Ressource"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "wert",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 6,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_06",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_score",
+                  "fields": [
+                    {
+                      "name": "wert",
+                      "expression": "SUM(`links_broken`) / SUM(`links_checked`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "tote Links",
+                "showDescription": true,
+                "description": "Anteil an geprüften Links (5.396 von 6.228)"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "wert",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 6,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_07",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_score",
+                  "fields": [
+                    {
+                      "name": "wert",
+                      "expression": "1 - AVG(`has_date_updated`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "ohne Aktualisierungsdatum"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "wert",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 6,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_08",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_score_by_source",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "y_quality_score",
+                      "expression": "AVG(`quality_score`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Ø Qualitätsscore je Quelle",
+                "showDescription": true,
+                "description": "Ohne Quelle „unbekannt“ (4 Datensätze) und ohne Datensätze ohne geprüfte Links"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "y_quality_score",
+                  "displayName": "Ø Score (mit Links)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "source_label",
+                  "displayName": "Quelle",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_09",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q7_long",
+                  "fields": [
+                    {
+                      "name": "origin",
+                      "expression": "`origin`"
+                    },
+                    {
+                      "name": "punkte",
+                      "expression": "`punkte`"
+                    },
+                    {
+                      "name": "teil",
+                      "expression": "`teil`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Automatisch geerntet vs. händisch gepflegt",
+                "showDescription": true,
+                "description": "Ø Teilpunkte (je max. 25), Quelle „unbekannt“ ausgeschlossen"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "origin",
+                  "displayName": "Herkunft",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "punkte",
+                  "displayName": "Ø Punkte",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "teil",
+                  "displayName": "Teilpunkte",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "mark": {
+                "layout": "stack"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 9,
+            "width": 6,
+            "height": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "maschinenlesbarkeit",
+      "displayName": "Maschinenlesbarkeit",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "bar_10",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q4a_top",
+                  "fields": [
+                    {
+                      "name": "format",
+                      "expression": "`format`"
+                    },
+                    {
+                      "name": "y_ressourcen",
+                      "expression": "SUM(`ressourcen`)"
+                    },
+                    {
+                      "name": "lesbarkeit",
+                      "expression": "`lesbarkeit`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Formatverteilung der Ressourcen (Top 12 + übrige)"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "y_ressourcen",
+                  "displayName": "Ressourcen",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "format",
+                  "displayName": "Format",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "lesbarkeit",
+                  "displayName": "Maschinenlesbar",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "mark": {
+                "layout": "stack"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 8,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "text_11",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Vorbehalt: WMS\n",
+                "WMS (Web Map Service) liefert nur ein **Kartenbild**, keine Sachdaten. Deshalb zählt WMS (ebenso WMTS) bei uns **nicht als maschinenlesbar**. Viele Geodatensätze bieten nur WMS an; sie erhalten keine Punkte für Maschinenlesbarkeit und tragen im Detail den Grund „nur Kartenbild“.\n",
+                "\n",
+                "Die Formatverteilung gilt für alle Quellen (der Quellen-Filter wirkt hier nicht).\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_12",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q8b_long",
+                  "fields": [
+                    {
+                      "name": "kennzahl",
+                      "expression": "`kennzahl`"
+                    },
+                    {
+                      "name": "wert",
+                      "expression": "`wert`"
+                    },
+                    {
+                      "name": "group_name",
+                      "expression": "`group_name`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "High-Value-Datensätze (EU) vs. übrige",
+                "showDescription": true,
+                "description": "High-Value-Datensätze nach EU-Durchführungsverordnung 2023/138; Score ohne Links"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "kennzahl",
+                  "displayName": "Kennzahl",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "wert",
+                  "displayName": "Wert",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "group_name",
+                  "displayName": "Gruppe",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "mark": {
+                "layout": "group"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "zeit",
+      "displayName": "Zeitangaben & Zeitreihen",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "bar_13",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q1",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "y_share_in_source_pct",
+                      "expression": "SUM(`share_in_source_pct`)"
+                    },
+                    {
+                      "name": "age_bucket",
+                      "expression": "`age_bucket`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Datenstand je Quelle (Jahr der letzten Aktualisierung)",
+                "showDescription": true,
+                "description": "Alt ist nicht schlecht: historische Daten dürfen ein altes Datum haben"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "y_share_in_source_pct",
+                  "displayName": "Anteil in der Quelle (%)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "source_label",
+                  "displayName": "Quelle",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "age_bucket",
+                  "displayName": "Datenstand",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "mark": {
+                "layout": "stack"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 7,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "text_14",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Hinweis zu temporal_granularity\n",
+                "Das Feld **temporal_granularity** beschreibt die **Auflösung** der Daten (z. B. „Jahr“, „Monat“), **nicht den Aktualisierungsrhythmus**. Eine erste Annahme, es sei der Rhythmus, haben die Daten widerlegt. Deshalb prüfen wir nicht, ob ein Rhythmus eingehalten wird.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 0,
+            "width": 5,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "table_15",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q2",
+                  "fields": [
+                    {
+                      "name": "rule",
+                      "expression": "`rule`"
+                    },
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "dataset_count",
+                      "expression": "`dataset_count`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "Widersprüchliche Zeitangaben je Regel und Quelle"
+              },
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "rule",
+                    "displayName": "Regel"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "displayName": "Quelle"
+                  },
+                  {
+                    "fieldName": "dataset_count",
+                    "displayName": "Datensätze",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 4,
+            "width": 5,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_16",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q3a",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "y_in_series_pct",
+                      "expression": "SUM(`in_series_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Anteil Datensätze in Zeitreihen je Quelle",
+                "showDescription": true,
+                "description": "Zeitreihe = mehrere Jahrgänge desselben Datensatzes (Heuristik über den Namen)"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "source_label",
+                  "displayName": "Quelle",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "y_in_series_pct",
+                  "displayName": "Anteil in Zeitreihen (%)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 7,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "table_17",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q3b",
+                  "fields": [
+                    {
+                      "name": "series_key",
+                      "expression": "`series_key`"
+                    },
+                    {
+                      "name": "datasets",
+                      "expression": "`datasets`"
+                    },
+                    {
+                      "name": "first_year",
+                      "expression": "`first_year`"
+                    },
+                    {
+                      "name": "last_year",
+                      "expression": "`last_year`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "Geprüfte Reihen, die womöglich eingestellt sind (letzter Jahrgang ≤ 2023)",
+                "showDescription": true,
+                "description": "Nur von Hand geprüfte Reihen aus Webformular/Datenrubrik"
+              },
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "series_key",
+                    "displayName": "Reihe"
+                  },
+                  {
+                    "fieldName": "datasets",
+                    "displayName": "Jahrgänge",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "first_year",
+                    "displayName": "erster Jahrgang",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "last_year",
+                    "displayName": "letzter Jahrgang",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 8,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "text_18",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### LOR-Reform 2021 prüfen\n",
+                "Endet eine Reihe um 2020/2021, kann sie unter neuem Namen weiterlaufen: 2021 wurden die Lebensweltlich orientierten Räume (LOR) neu zugeschnitten. Vor dem Urteil „eingestellt“ im Portal nach einer Nachfolge-Reihe suchen.\n",
+                "\n",
+                "Diese Tabelle wird vom Quellen-Filter nicht gefiltert.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 15,
+            "width": 4,
+            "height": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "erreichbarkeit",
+      "displayName": "Erreichbarkeit",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "kpi_19",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q6",
+                  "fields": [
+                    {
+                      "name": "wert",
+                      "expression": "SUM(`broken`) / SUM(`checked_resources`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "tote Links (alle geprüften Ressourcen)"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "wert",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_20",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q6",
+                  "fields": [
+                    {
+                      "name": "wert",
+                      "expression": "SUM(`checked_resources`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "geprüfte Links"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "wert",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_21",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q6",
+                  "fields": [
+                    {
+                      "name": "wert",
+                      "expression": "SUM(`broken`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "frame": {
+                "showTitle": true,
+                "title": "davon tot"
+              },
+              "encodings": {
+                "value": {
+                  "fieldName": "wert",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 3,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_22",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q6",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "y_broken_pct",
+                      "expression": "SUM(`broken`) * 100.0 / SUM(`checked_resources`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Anteil toter Links je Quelle",
+                "showDescription": true,
+                "description": "Link-Check am 13.11.2026: HTTP 4xx/5xx, DNS-Fehler oder Timeout = tot"
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "source_label",
+                  "displayName": "Quelle",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "y_broken_pct",
+                  "displayName": "tote Links (%)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 8,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "text_23",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### So wurde geprüft\n",
+                "Jeder Ressourcen-Link wurde am 13.11.2026 einmal abgerufen (erst HEAD, bei Fehler GET). Tot heißt: HTTP-Fehler 4xx/5xx, DNS-Fehler oder Zeitüberschreitung (15 s). Ein einmaliger Check kann vorübergehende Ausfälle erwischen.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "table_24",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q6b",
+                  "fields": [
+                    {
+                      "name": "host",
+                      "expression": "`host`"
+                    },
+                    {
+                      "name": "checked_links",
+                      "expression": "`checked_links`"
+                    },
+                    {
+                      "name": "broken",
+                      "expression": "`broken`"
+                    },
+                    {
+                      "name": "broken_pct",
+                      "expression": "`broken_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "Hosts mit den meisten defekten Links (nur Hosts mit ≥ 20 Links)",
+                "showDescription": true,
+                "description": "Gilt für alle Quellen (der Quellen-Filter wirkt hier nicht)"
+              },
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "host",
+                    "displayName": "Host"
+                  },
+                  {
+                    "fieldName": "checked_links",
+                    "displayName": "geprüfte Links",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "broken",
+                    "displayName": "defekt",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "broken_pct",
+                    "displayName": "Anteil defekt (%)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "bereitsteller",
+      "displayName": "Bereitsteller & Themen",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "table_25",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q8",
+                  "fields": [
+                    {
+                      "name": "publisher_name",
+                      "expression": "`publisher_name`"
+                    },
+                    {
+                      "name": "dataset_count",
+                      "expression": "`dataset_count`"
+                    },
+                    {
+                      "name": "avg_score_without_links",
+                      "expression": "`avg_score_without_links`"
+                    },
+                    {
+                      "name": "avg_score",
+                      "expression": "`avg_score`"
+                    },
+                    {
+                      "name": "avg_time",
+                      "expression": "`avg_time`"
+                    },
+                    {
+                      "name": "avg_reach",
+                      "expression": "`avg_reach`"
+                    },
+                    {
+                      "name": "avg_machine",
+                      "expression": "`avg_machine`"
+                    },
+                    {
+                      "name": "avg_completeness",
+                      "expression": "`avg_completeness`"
+                    },
+                    {
+                      "name": "missing_date_pct",
+                      "expression": "`missing_date_pct`"
+                    },
+                    {
+                      "name": "not_machine_readable_pct",
+                      "expression": "`not_machine_readable_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "Bereitsteller mit mindestens 10 Datensätzen, schwächste zuerst",
+                "showDescription": true,
+                "description": "Sortiert nach Ø Score ohne Links (aufsteigend). Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."
+              },
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "publisher_name",
+                    "displayName": "Bereitsteller"
+                  },
+                  {
+                    "fieldName": "dataset_count",
+                    "displayName": "Datensätze",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "avg_score_without_links",
+                    "displayName": "Ø Score ohne Links",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "avg_score",
+                    "displayName": "Ø Score mit Links",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "avg_time",
+                    "displayName": "Ø Zeitangaben",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "avg_reach",
+                    "displayName": "Ø Erreichbarkeit",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "avg_machine",
+                    "displayName": "Ø Maschinenlesbarkeit",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "avg_completeness",
+                    "displayName": "Ø Vollständigkeit",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "missing_date_pct",
+                    "displayName": "ohne Datum (%)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "not_machine_readable_pct",
+                    "displayName": "nicht maschinenlesbar (%)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_26",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q9",
+                  "fields": [
+                    {
+                      "name": "theme",
+                      "expression": "`theme`"
+                    },
+                    {
+                      "name": "avg_score",
+                      "expression": "`avg_score`"
+                    },
+                    {
+                      "name": "dataset_count",
+                      "expression": "`dataset_count`"
+                    },
+                    {
+                      "name": "avg_score_without_links",
+                      "expression": "`avg_score_without_links`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "Ø Qualitätsscore je Thema",
+                "showDescription": true,
+                "description": "Ein Datensatz kann zu mehreren Themen gehören. Themen mit wenigen Datensätzen schwanken stark."
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "avg_score",
+                  "displayName": "Ø Score (mit Links)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "theme",
+                  "displayName": "Thema",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x"
+                    }
+                  }
+                },
+                "extra": [
+                  {
+                    "fieldName": "dataset_count",
+                    "displayName": "Datensätze"
+                  },
+                  {
+                    "fieldName": "avg_score_without_links",
+                    "displayName": "Ø Score ohne Links"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 12,
+            "height": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "detail",
+      "displayName": "Datensatz-Detail",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_27",
+            "queries": [
+              {
+                "name": "f_publisher_name_ds_detail",
+                "query": {
+                  "datasetName": "ds_detail",
+                  "fields": [
+                    {
+                      "name": "publisher_name",
+                      "expression": "`publisher_name`"
+                    },
+                    {
+                      "name": "publisher_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "frame": {
+                "showTitle": true,
+                "title": "Bereitsteller"
+              },
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "publisher_name",
+                    "queryName": "f_publisher_name_ds_detail"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 5,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_28",
+            "queries": [
+              {
+                "name": "f_theme_values",
+                "query": {
+                  "datasetName": "ds_themes",
+                  "fields": [
+                    {
+                      "name": "theme",
+                      "expression": "`theme`"
+                    },
+                    {
+                      "name": "theme_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "p_thema_ds_detail",
+                "query": {
+                  "datasetName": "ds_detail",
+                  "parameters": [
+                    {
+                      "name": "thema",
+                      "keyword": "thema"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "frame": {
+                "showTitle": true,
+                "title": "Thema"
+              },
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "Alle Themen"
+                      }
+                    ]
+                  }
+                }
+              },
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "theme",
+                    "queryName": "f_theme_values"
+                  },
+                  {
+                    "parameterName": "thema",
+                    "queryName": "p_thema_ds_detail"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 0,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_29",
+            "queries": [
+              {
+                "name": "f_quality_score_ds_detail",
+                "query": {
+                  "datasetName": "ds_detail",
+                  "fields": [
+                    {
+                      "name": "quality_score",
+                      "expression": "`quality_score`"
+                    },
+                    {
+                      "name": "quality_score_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "range-slider",
+              "frame": {
+                "showTitle": true,
+                "title": "Score-Bereich (mit Links)"
+              },
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "quality_score",
+                    "queryName": "f_quality_score_ds_detail"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "table_30",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_detail",
+                  "fields": [
+                    {
+                      "name": "title",
+                      "expression": "`title`"
+                    },
+                    {
+                      "name": "publisher_name",
+                      "expression": "`publisher_name`"
+                    },
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "quality_score",
+                      "expression": "`quality_score`"
+                    },
+                    {
+                      "name": "quality_score_without_links",
+                      "expression": "`quality_score_without_links`"
+                    },
+                    {
+                      "name": "time_points",
+                      "expression": "`time_points`"
+                    },
+                    {
+                      "name": "reach_points",
+                      "expression": "`reach_points`"
+                    },
+                    {
+                      "name": "machine_points",
+                      "expression": "`machine_points`"
+                    },
+                    {
+                      "name": "completeness_points",
+                      "expression": "`completeness_points`"
+                    },
+                    {
+                      "name": "reasons",
+                      "expression": "`reasons`"
+                    },
+                    {
+                      "name": "portal_url",
+                      "expression": "`portal_url`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "frame": {
+                "showTitle": true,
+                "title": "Datensätze mit Score und Gründen",
+                "showDescription": true,
+                "description": "Titel anklicken öffnet den Datensatz auf daten.berlin.de. Keine Personendaten."
+              },
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "title",
+                    "displayName": "Titel",
+                    "displayAs": "link",
+                    "linkUrlTemplate": "{{ portal_url }}",
+                    "linkTextTemplate": "{{ title }}",
+                    "linkOpenInNewTab": true
+                  },
+                  {
+                    "fieldName": "publisher_name",
+                    "displayName": "Bereitsteller"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "displayName": "Quelle"
+                  },
+                  {
+                    "fieldName": "quality_score",
+                    "displayName": "Score mit Links",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "quality_score_without_links",
+                    "displayName": "Score ohne Links",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "time_points",
+                    "displayName": "Zeitangaben (max. 25)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "reach_points",
+                    "displayName": "Erreichbarkeit (max. 25)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "machine_points",
+                    "displayName": "Maschinenlesbarkeit (max. 25)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "completeness_points",
+                    "displayName": "Vollständigkeit (max. 25)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "reasons",
+                    "displayName": "Gründe für Punktabzug"
+                  },
+                  {
+                    "fieldName": "portal_url",
+                    "displayName": "Link ins Portal",
+                    "displayAs": "link",
+                    "linkUrlTemplate": "{{ portal_url }}",
+                    "linkTextTemplate": "im Portal öffnen",
+                    "linkOpenInNewTab": true
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 16
+          }
+        }
+      ]
+    },
+    {
+      "name": "methodik",
+      "displayName": "Methodik",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "text_31",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Datenquelle\n",
+                "CKAN-API von datenregister.berlin.de (`package_search`), Abruf als Snapshot am **13.11.2026**: 2.632 Einträge, davon **2.595 Datensätze** (`berlin_type = datensatz`) mit 6.228 Ressourcen. Die Daten werden normalisiert in Databricks (Schema `workspace.opendata`) geladen; alle Auswertungen sind SQL-Views.\n",
+                "\n",
+                "Es werden keine Personendaten gespeichert, nur ob Kontaktangaben vorhanden sind.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "text_32",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Qualitätsscore: 4 × 25 Punkte\n",
+                "- **Zeitangaben (25):** Aktualisierungsdatum 10, Zeitraum 5, keine Widersprüche 10\n",
+                "- **Erreichbarkeit (25):** Anteil erreichbarer Ressourcen-Links × 25\n",
+                "- **Maschinenlesbarkeit (25):** mindestens eine maschinenlesbare Ressource\n",
+                "- **Vollständigkeit (25):** Format bei jeder Ressource 10, Beschreibung ≥ 100 Zeichen 5, ≥ 3 Schlagwörter 5, offene Lizenz 5\n",
+                "\n",
+                "„Score ohne Links“ rechnet die übrigen 75 Punkte auf 100 hoch. Datensätze ohne geprüften Link haben keinen Score mit Links.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "text_33",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Vorbehalte\n",
+                "- Der Score ist eine **eigene Definition**, keine offizielle Kennzahl. Deshalb stehen die Teilpunkte immer daneben.\n",
+                "- **WMS/WMTS** liefern nur ein Kartenbild und zählen nicht als maschinenlesbar.\n",
+                "- **Zeitreihen** werden heuristisch über den Datensatznamen erkannt (Jahreszahlen, Stichtage, IDs entfernt); nur ein Teil ist von Hand geprüft.\n",
+                "- **Link-Check** einmalig am 13.11.2026; vorübergehende Ausfälle können als tot zählen. Die 404-Fehler bei Stromnetz Berlin wurden stichprobenhaft per GET bestätigt.\n",
+                "- Der Quellen-Filter wirkt nur auf Auswertungen, die nach Quelle aufgeteilt sind.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "text_34",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### KI-Nutzung\n",
+                "Das Projekt wurde mit KI-Unterstützung erstellt: **Claude (Chat)** für Planung, ER-Modell und SQL-Analysen, **Claude Code** für Harvester, Transform, Deploy-Skripte, Link-Check und dieses Dashboard. Die Abfragen werden lokal gegen die exportierten Tabellen getestet und Ergebnisse stichprobenhaft im Portal nachgesehen. Alle Entscheidungen hat der Autor nachvollzogen.\n",
+                "\n",
+                "### Quellcode\n",
+                "Repository **opendata-quality-watch** (Link wird nach Veröffentlichung auf GitHub ergänzt)\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "globale_filter",
+      "displayName": "Globale Filter",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_35",
+            "queries": [
+              {
+                "name": "f_source_label_ds_score",
+                "query": {
+                  "datasetName": "ds_score",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "source_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "f_source_label_ds_score_by_source",
+                "query": {
+                  "datasetName": "ds_score_by_source",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "source_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "f_source_label_ds_detail",
+                "query": {
+                  "datasetName": "ds_detail",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "source_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "f_source_label_ds_q1",
+                "query": {
+                  "datasetName": "ds_q1",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "source_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "f_source_label_ds_q2",
+                "query": {
+                  "datasetName": "ds_q2",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "source_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "f_source_label_ds_q3a",
+                "query": {
+                  "datasetName": "ds_q3a",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "source_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "f_source_label_ds_q6",
+                "query": {
+                  "datasetName": "ds_q6",
+                  "fields": [
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
+                    },
+                    {
+                      "name": "source_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "frame": {
+                "showTitle": true,
+                "title": "Quelle"
+              },
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "source_label",
+                    "queryName": "f_source_label_ds_score"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "queryName": "f_source_label_ds_score_by_source"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "queryName": "f_source_label_ds_detail"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "queryName": "f_source_label_ds_q1"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "queryName": "f_source_label_ds_q2"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "queryName": "f_source_label_ds_q3a"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "queryName": "f_source_label_ds_q6"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
