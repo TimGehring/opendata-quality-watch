@@ -24,7 +24,7 @@
       "name": "ds_detail",
       "displayName": "Datensatz-Detail",
       "queryLines": [
-        "SELECT quality_score, reasons, title, portal_url, publisher_short, publisher_name, source_label,\n",
+        "SELECT quality_score, reasons, title, portal_url, publisher_short, publisher_name, source_label, source_label_long,\n",
         "       time_points, reach_points, machine_points, completeness_points\n",
         "FROM workspace.opendata.v_dataset_score\n",
         "WHERE :thema = 'Alle Themen'\n",
@@ -933,7 +933,7 @@
             "x": 7,
             "y": 4,
             "width": 5,
-            "height": 8
+            "height": 9
           }
         },
         {
@@ -1495,7 +1495,7 @@
                 "showTitle": true,
                 "title": "Bereitsteller mit mindestens 10 Datensätzen, schwächste zuerst",
                 "showDescription": true,
-                "description": "Kurznamen, Langnamen im Datensatz-Detail. Ø Score mit Links, Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."
+                "description": "Kurznamen; Langnamen im Datensatz-Detail (Filter und Tooltip am Titel). Ø Score mit Links, Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."
               },
               "encodings": {
                 "columns": [
@@ -1891,12 +1891,16 @@
                       "expression": "`completeness_points`"
                     },
                     {
+                      "name": "portal_url",
+                      "expression": "`portal_url`"
+                    },
+                    {
                       "name": "publisher_name",
                       "expression": "`publisher_name`"
                     },
                     {
-                      "name": "portal_url",
-                      "expression": "`portal_url`"
+                      "name": "source_label_long",
+                      "expression": "`source_label_long`"
                     }
                   ],
                   "disaggregated": true
@@ -1910,7 +1914,7 @@
                 "showTitle": true,
                 "title": "Datensätze mit Score und Gründen (schwächste zuerst)",
                 "showDescription": true,
-                "description": "Score mit Links, Teilpunkte je max. 25. Titel anklicken öffnet daten.berlin.de/datensaetze/<name>. Keine Personendaten."
+                "description": "Score mit Links, Teilpunkte je max. 25. Titel anklicken öffnet daten.berlin.de/datensaetze/<name>; Maus über dem Titel zeigt den Langnamen des Bereitstellers. Keine Personendaten."
               },
               "encodings": {
                 "columns": [
@@ -1936,6 +1940,7 @@
                     "displayAs": "link",
                     "linkUrlTemplate": "{{ portal_url }}",
                     "linkTextTemplate": "{{ title }}",
+                    "linkTitleTemplate": "{{ publisher_name }} · Quelle: {{ source_label_long }}",
                     "linkOpenInNewTab": true
                   },
                   {
@@ -1993,10 +1998,6 @@
                         "places": 1
                       }
                     }
-                  },
-                  {
-                    "fieldName": "publisher_name",
-                    "displayName": "Bereitsteller (Langname)"
                   }
                 ]
               }

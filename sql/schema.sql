@@ -49,6 +49,7 @@ CREATE TABLE publisher_alias (
 CREATE TABLE source_system (
   source_system_id    STRING     NOT NULL COMMENT 'CKAN-Feld berlin_source, unbekannt = Feld im Portal leer',
   label               STRING     NOT NULL,
+  short_label         STRING     NOT NULL COMMENT 'Kurzname für Tabellen und Achsen im Dashboard',
   is_harvested        BOOLEAN    NOT NULL COMMENT 'Automatisch aus einem Fremdsystem geharvestet',
   CONSTRAINT pk_source_system PRIMARY KEY (source_system_id)
 ) COMMENT 'Erfassungsweg der Metadaten (Harvester, Webformular, API)';

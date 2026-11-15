@@ -31,7 +31,7 @@ SELECT source_label, quality_score
 FROM {V}v_dataset_score
 WHERE source_label <> 'unbekannt'"""),
     "ds_detail": ("Datensatz-Detail", f"""
-SELECT quality_score, reasons, title, portal_url, publisher_short, publisher_name, source_label,
+SELECT quality_score, reasons, title, portal_url, publisher_short, publisher_name, source_label, source_label_long,
        time_points, reach_points, machine_points, completeness_points
 FROM {V}v_dataset_score
 WHERE :thema = 'Alle Themen'
@@ -284,7 +284,7 @@ def page_time():
               "Deshalb prüfen wir nicht, ob ein Rhythmus eingehalten wird."], 7, 0, 5, 4),
         table("Widersprüchliche Zeitangaben je Regel und Quelle", "ds_q2",
               [("rule", "Regel", None), ("source_label", "Quelle", None), ("dataset_count", "Datensätze", num(0))],
-              pos=(7, 4, 5, 8)),
+              pos=(7, 4, 5, 9)),
         bar("Anteil Datensätze in Zeitreihen je Quelle", "ds_q3a", "source_label", "Quelle", "in_series_pct",
             "Anteil in Zeitreihen (%)", y_expr="SUM(`in_series_pct`)", pos=(0, 8, 7, 7),
             description="Zeitreihe = mehrere Jahrgänge desselben Datensatzes (Heuristik über den Namen)"),
@@ -335,7 +335,7 @@ def page_publishers():
                ("avg_time", "Ø Zeit", num(1)), ("avg_reach", "Ø Erreichb.", num(1)),
                ("avg_machine", "Ø Maschinenl.", num(1)), ("avg_completeness", "Ø Vollst.", num(1))],
               pos=(0, 0, 12, 10),
-              description="Kurznamen, Langnamen im Datensatz-Detail. Ø Score mit Links, Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."),
+              description="Kurznamen; Langnamen im Datensatz-Detail (Filter und Tooltip am Titel). Ø Score mit Links, Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."),
         bar("Ø Qualitätsscore je Thema", "ds_q9", "theme", "Thema", "avg_score", "Ø Score (mit Links)",
             horizontal=True, sort="x", pos=(0, 10, 12, 10),
             extra=[("dataset_count", "Datensätze"), ("avg_score_without_links", "Ø Score ohne Links")],
@@ -353,13 +353,14 @@ def page_detail():
                ("reasons", "Gründe für Punktabzug", None),
                ("title", "Titel", None,
                 {"displayAs": "link", "linkUrlTemplate": "{{ portal_url }}", "linkTextTemplate": "{{ title }}",
+                 "linkTitleTemplate": "{{ publisher_name }} · Quelle: {{ source_label_long }}",
                  "linkOpenInNewTab": True}),
                ("publisher_short", "Bereitsteller", None), ("source_label", "Quelle", None),
                ("time_points", "Zeit", num(1)), ("reach_points", "Erreichb.", num(1)),
-               ("machine_points", "Maschinenl.", num(1)), ("completeness_points", "Vollst.", num(1)),
-               ("publisher_name", "Bereitsteller (Langname)", None)],
-              pos=(0, 2, 12, 16), hidden_fields=("portal_url",),
-              description="Score mit Links, Teilpunkte je max. 25. Titel anklicken öffnet daten.berlin.de/datensaetze/<name>. Keine Personendaten."),
+               ("machine_points", "Maschinenl.", num(1)), ("completeness_points", "Vollst.", num(1))],
+              pos=(0, 2, 12, 16), hidden_fields=("portal_url", "publisher_name", "source_label_long"),
+              description="Score mit Links, Teilpunkte je max. 25. Titel anklicken öffnet daten.berlin.de/datensaetze/<name>; "
+                          "Maus über dem Titel zeigt den Langnamen des Bereitstellers. Keine Personendaten."),
     ]
     return "detail", "Datensatz-Detail", L
 

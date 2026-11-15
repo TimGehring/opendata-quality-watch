@@ -78,7 +78,7 @@ SELECT * FROM read_files(
   '/Volumes/workspace/opendata/raw/tables/source_system.csv',
   format => 'csv', header => true, multiLine => true, escape => '"',
   timestampFormat => 'yyyy-MM-dd HH:mm:ss', mode => 'FAILFAST',
-  schema => 'source_system_id STRING, label STRING, is_harvested BOOLEAN'
+  schema => 'source_system_id STRING, label STRING, short_label STRING, is_harvested BOOLEAN'
 );
 
 -- COMMAND ----------

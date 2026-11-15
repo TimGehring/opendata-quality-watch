@@ -34,15 +34,16 @@ SIMILARITY_THRESHOLD = 0.9
 MAX_PERIOD_YEAR = 2029
 TOP_SERIES = 20
 
+# code -> (label, short_label); short_label für schmale Tabellen und Achsen im Dashboard
 SOURCE_SYSTEM_LABELS = {
-    "harvest-fisbroker": "Harvester FIS-Broker",
-    "harvest-stromnetzberlin": "Harvester Stromnetz Berlin",
-    "webform": "Webformular",
-    "api-datenrubrik": "API Datenrubrik",
-    "api-datenrubrik-dw": "API Datenrubrik (DW)",
-    "api-gitaction": "API GitHub Action",
-    "simplesearch": "SimpleSearch",
-    "unbekannt": "unbekannt",
+    "harvest-fisbroker": ("Harvester FIS-Broker", "FIS-Broker"),
+    "harvest-stromnetzberlin": ("Harvester Stromnetz Berlin", "Stromnetz"),
+    "webform": ("Webformular", "Webformular"),
+    "api-datenrubrik": ("API Datenrubrik", "Datenrubrik"),
+    "api-datenrubrik-dw": ("API Datenrubrik (DW)", "Datenrubrik DW"),
+    "api-gitaction": ("API GitHub Action", "GitHub Action"),
+    "simplesearch": ("SimpleSearch", "SimpleSearch"),
+    "unbekannt": ("unbekannt", "unbekannt"),
 }
 UNKNOWN_SOURCE = "unbekannt"
 # sources whose series are listed in series_statistics_to_verify.csv
@@ -232,7 +233,8 @@ def build_source_systems(datasets: list[dict]) -> list[dict]:
     for code in codes:
         if code not in SOURCE_SYSTEM_LABELS:
             warnings.append(f"source_system {code!r} has no label, using code")
-        rows.append({"source_system_id": code, "label": SOURCE_SYSTEM_LABELS.get(code, code),
+        label, short_label = SOURCE_SYSTEM_LABELS.get(code, (code, code))
+        rows.append({"source_system_id": code, "label": label, "short_label": short_label,
                      "is_harvested": code.startswith("harvest-")})
     return rows
 

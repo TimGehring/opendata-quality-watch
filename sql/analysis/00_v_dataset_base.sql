@@ -9,7 +9,8 @@ SELECT
   d.title,
   'https://daten.berlin.de/datensaetze/' || d.name     AS portal_url,
   COALESCE(d.source_system_id, 'unbekannt')            AS source_system_id,
-  s.label                                              AS source_label,
+  s.short_label                                        AS source_label,       -- Kurzname, z. B. FIS-Broker
+  s.label                                              AS source_label_long,  -- z. B. Harvester FIS-Broker
   s.is_harvested,
   p.name                                               AS publisher_name,
   COALESCE(p.short_name, p.name)                       AS publisher_short,
