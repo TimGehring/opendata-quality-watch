@@ -35,6 +35,7 @@ CREATE TABLE publisher (
   publisher_id        INT        NOT NULL,
   name                STRING     NOT NULL COMMENT 'canonical_name aus publisher_merge.csv, sonst häufigste Schreibweise unter den Aliasen',
   name_normalized     STRING     NOT NULL COMMENT 'trim + lower + Mehrfach-Leerzeichen entfernt',
+  short_name          STRING              COMMENT 'Kurzname fürs Dashboard aus seeds/publisher_short.csv (nur Bereitsteller mit >= 10 Datensätzen)',
   CONSTRAINT pk_publisher PRIMARY KEY (publisher_id)
 ) COMMENT 'Veröffentlichende Stelle (aus CKAN-Feld author), zusammengeführt bei identischem normalisierten Namen und nach seeds/publisher_merge.csv';
 

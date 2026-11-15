@@ -9,6 +9,7 @@ Outputs:
   data/review/series_statistics_to_verify.csv  series from webform/api-datenrubrik with >= 3 years
 
 Seeds: seeds/publisher_merge.csv (manual publisher merges),
+       seeds/publisher_short.csv (short names for the dashboard, publishers with >= 10 datasets),
        seeds/series_override.csv (series key overrides, manually_verified)
 """
 
@@ -153,9 +154,10 @@ def period_year(base_name: str, coverage_to: str | None) -> int | None:
 # --- table builders ---------------------------------------------------------
 
 
-def build_publishers(datasets: list[dict], merges: list[dict]):
+def build_publishers(datasets: list[dict], merges: list[dict], short_names: list[dict]):
     """Merge author values if their normalized text is identical, plus the manual
-    pairs from seeds/publisher_merge.csv (alias -> canonical_name), nothing else."""
+    pairs from seeds/publisher_merge.csv (alias -> canonical_name), nothing else.
+    short_name comes from seeds/publisher_short.csv (matched on the final name), else empty."""
     variants: dict[str, Counter] = defaultdict(Counter)
     for ds in datasets:
         if is_filled(ds.get("author")):
@@ -177,15 +179,21 @@ def build_publishers(datasets: list[dict], merges: list[dict]):
     merged_names = {normalize_name(m["canonical_name"]): " ".join(m["canonical_name"].split())
                     for m in merges}
 
+    short_by_name = {" ".join(r["name"].split()): r["short_name"].strip() for r in short_names}
     publishers, aliases, alias_to_id, counts = [], [], {}, {}
     for publisher_id, norm in enumerate(sorted(variants), start=1):
-        name = merged_names.get(norm) or variants[norm].most_common(1)[0][0].strip()
-        publishers.append({"publisher_id": publisher_id, "name": " ".join(name.split()),
-                           "name_normalized": norm})
+        name = " ".join((merged_names.get(norm) or variants[norm].most_common(1)[0][0].strip()).split())
+        publishers.append({"publisher_id": publisher_id, "name": name,
+                           "name_normalized": norm, "short_name": short_by_name.pop(name, None)})
         counts[publisher_id] = sum(variants[norm].values())
         for alias in sorted(variants[norm]):
             aliases.append({"alias": alias, "publisher_id": publisher_id})
             alias_to_id[alias] = publisher_id
+    if short_by_name:
+        raise SystemExit(f"publisher_short.csv: names not found as publisher: {sorted(short_by_name)}")
+    shorts = [p["short_name"] for p in publishers if p["short_name"]]
+    if len(shorts) != len(set(shorts)):
+        raise SystemExit("publisher_short.csv: short_name is not unique")
     return publishers, aliases, alias_to_id, counts
 
 
@@ -469,7 +477,7 @@ def main() -> None:
     hvd_rows = [{"hvd_code": r["hvd_code"], "label": r["label"] or None} for r in read_seed("hvd_category.csv")]
 
     publishers, aliases, alias_to_id, publisher_counts = build_publishers(
-        datasets, read_seed("publisher_merge.csv"))
+        datasets, read_seed("publisher_merge.csv"), read_seed("publisher_short.csv"))
     themes, dataset_themes = build_themes(datasets)
     series, series_assignment, period_years, series_review, series_members = build_series(
         datasets, read_seed("series_override.csv"))

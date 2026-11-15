@@ -58,7 +58,7 @@ SELECT * FROM read_files(
   '/Volumes/workspace/opendata/raw/tables/publisher.csv',
   format => 'csv', header => true, multiLine => true, escape => '"',
   timestampFormat => 'yyyy-MM-dd HH:mm:ss', mode => 'FAILFAST',
-  schema => 'publisher_id INT, name STRING, name_normalized STRING'
+  schema => 'publisher_id INT, name STRING, name_normalized STRING, short_name STRING'
 );
 
 -- COMMAND ----------

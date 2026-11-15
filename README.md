@@ -13,7 +13,7 @@ und ein Dashboard macht die Entwicklung über die Zeit sichtbar.
 |---------------|-------------------------------------------------|
 | `harvester/`  | Skripte zum Laden und Profilieren der Metadaten |
 | `sql/`        | Tabellenschema (`schema.sql`) und SQL-Auswertungen |
-| `seeds/`      | Manuell gepflegte Stammdaten (Formate, Format-Aliase, HVD-Kategorien) |
+| `seeds/`      | Manuell gepflegte Stammdaten (Formate, Format-Aliase, HVD-Kategorien, Publisher-Zusammenführungen und -Kurznamen) |
 | `scripts/`    | Hilfsskripte (Upload nach Databricks)           |
 | `notebooks/`  | Databricks-Notebooks (Egress-Test, Laden der Tabellen) |
 | `dashboard/`  | AI/BI-Dashboard als Code (`opendata_quality.lvdash.json`, erzeugt von `build_dashboard.py`), Screenshots |
@@ -97,6 +97,7 @@ erzeugt und nicht von Hand bearbeitet. Alle Datasets lesen nur Views aus `worksp
 ```bash
 ./scripts/deploy_databricks.sh analysis    # Views anlegen (vorher: python3 tests/test_views_sqlite.py)
 ./scripts/deploy_databricks.sh dashboard   # JSON bauen, Dashboard anlegen/aktualisieren, veröffentlichen
+python3 dashboard/check_widgets.py         # jede Widget-Abfrage per Statement-API: Fehler oder leer?
 ```
 
 Beim ersten Lauf wird das Dashboard mit `databricks lakeview create` angelegt und die ID in

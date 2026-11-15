@@ -24,11 +24,12 @@
       "name": "ds_detail",
       "displayName": "Datensatz-Detail",
       "queryLines": [
-        "SELECT title, publisher_name, source_label, quality_score, quality_score_without_links,\n",
-        "       time_points, reach_points, machine_points, completeness_points, reasons, portal_url\n",
+        "SELECT quality_score, reasons, title, portal_url, publisher_short, publisher_name, source_label,\n",
+        "       time_points, reach_points, machine_points, completeness_points\n",
         "FROM workspace.opendata.v_dataset_score\n",
         "WHERE :thema = 'Alle Themen'\n",
-        "   OR dataset_id IN (SELECT dataset_id FROM workspace.opendata.v_dataset_theme WHERE theme = :thema)"
+        "   OR dataset_id IN (SELECT dataset_id FROM workspace.opendata.v_dataset_theme WHERE theme = :thema)\n",
+        "ORDER BY quality_score ASC NULLS LAST"
       ],
       "parameters": [
         {
@@ -83,7 +84,8 @@
         "            ELSE 'ohne Formatangabe' END AS lesbarkeit,\n",
         "       SUM(resource_count) AS ressourcen\n",
         "FROM ranked\n",
-        "GROUP BY 1, 2"
+        "GROUP BY 1, 2\n",
+        "ORDER BY ressourcen DESC"
       ]
     },
     {
@@ -141,9 +143,9 @@
       "name": "ds_q8",
       "displayName": "Q8 Bereitsteller",
       "queryLines": [
-        "SELECT publisher_name, dataset_count, avg_score_without_links, avg_score,\n",
-        "       avg_time, avg_reach, avg_machine, avg_completeness, missing_date_pct, not_machine_readable_pct\n",
-        "FROM workspace.opendata.q8_publisher_ranking"
+        "SELECT publisher_short, dataset_count, avg_score, avg_time, avg_reach, avg_machine, avg_completeness\n",
+        "FROM workspace.opendata.q8_publisher_ranking\n",
+        "ORDER BY avg_score ASC"
       ]
     },
     {
@@ -241,7 +243,7 @@
           "position": {
             "x": 0,
             "y": 6,
-            "width": 2,
+            "width": 4,
             "height": 3
           }
         },
@@ -288,9 +290,9 @@
             }
           },
           "position": {
-            "x": 2,
+            "x": 4,
             "y": 6,
-            "width": 3,
+            "width": 4,
             "height": 3
           }
         },
@@ -336,9 +338,9 @@
             }
           },
           "position": {
-            "x": 5,
+            "x": 8,
             "y": 6,
-            "width": 2,
+            "width": 4,
             "height": 3
           }
         },
@@ -384,9 +386,9 @@
             }
           },
           "position": {
-            "x": 7,
-            "y": 6,
-            "width": 2,
+            "x": 0,
+            "y": 9,
+            "width": 6,
             "height": 3
           }
         },
@@ -413,7 +415,9 @@
               "widgetType": "counter",
               "frame": {
                 "showTitle": true,
-                "title": "ohne Aktualisierungsdatum"
+                "title": "ohne Aktualisierungsdatum",
+                "showDescription": true,
+                "description": "Feld date_updated leer"
               },
               "encodings": {
                 "value": {
@@ -430,9 +434,9 @@
             }
           },
           "position": {
-            "x": 9,
-            "y": 6,
-            "width": 3,
+            "x": 6,
+            "y": 9,
+            "width": 6,
             "height": 3
           }
         },
@@ -498,7 +502,7 @@
           },
           "position": {
             "x": 0,
-            "y": 9,
+            "y": 12,
             "width": 6,
             "height": 8
           }
@@ -576,7 +580,7 @@
           },
           "position": {
             "x": 6,
-            "y": 9,
+            "y": 12,
             "width": 6,
             "height": 8
           }
@@ -1206,9 +1210,9 @@
             }
           },
           "position": {
-            "x": 0,
-            "y": 3,
-            "width": 2,
+            "x": 4,
+            "y": 0,
+            "width": 4,
             "height": 3
           }
         },
@@ -1253,9 +1257,9 @@
             }
           },
           "position": {
-            "x": 2,
-            "y": 3,
-            "width": 2,
+            "x": 8,
+            "y": 0,
+            "width": 4,
             "height": 3
           }
         },
@@ -1320,8 +1324,8 @@
             }
           },
           "position": {
-            "x": 4,
-            "y": 0,
+            "x": 0,
+            "y": 3,
             "width": 8,
             "height": 8
           }
@@ -1337,10 +1341,10 @@
             }
           },
           "position": {
-            "x": 0,
-            "y": 6,
+            "x": 8,
+            "y": 3,
             "width": 4,
-            "height": 5
+            "height": 8
           }
         },
         {
@@ -1452,16 +1456,12 @@
                   "datasetName": "ds_q8",
                   "fields": [
                     {
-                      "name": "publisher_name",
-                      "expression": "`publisher_name`"
+                      "name": "publisher_short",
+                      "expression": "`publisher_short`"
                     },
                     {
                       "name": "dataset_count",
                       "expression": "`dataset_count`"
-                    },
-                    {
-                      "name": "avg_score_without_links",
-                      "expression": "`avg_score_without_links`"
                     },
                     {
                       "name": "avg_score",
@@ -1482,14 +1482,6 @@
                     {
                       "name": "avg_completeness",
                       "expression": "`avg_completeness`"
-                    },
-                    {
-                      "name": "missing_date_pct",
-                      "expression": "`missing_date_pct`"
-                    },
-                    {
-                      "name": "not_machine_readable_pct",
-                      "expression": "`not_machine_readable_pct`"
                     }
                   ],
                   "disaggregated": true
@@ -1503,17 +1495,17 @@
                 "showTitle": true,
                 "title": "Bereitsteller mit mindestens 10 Datensätzen, schwächste zuerst",
                 "showDescription": true,
-                "description": "Sortiert nach Ø Score ohne Links (aufsteigend). Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."
+                "description": "Kurznamen, Langnamen im Datensatz-Detail. Ø Score mit Links, Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."
               },
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "publisher_name",
+                    "fieldName": "publisher_short",
                     "displayName": "Bereitsteller"
                   },
                   {
                     "fieldName": "dataset_count",
-                    "displayName": "Datensätze",
+                    "displayName": "n",
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
@@ -1524,20 +1516,8 @@
                     }
                   },
                   {
-                    "fieldName": "avg_score_without_links",
-                    "displayName": "Ø Score ohne Links",
-                    "format": {
-                      "type": "number-plain",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 1
-                      }
-                    }
-                  },
-                  {
                     "fieldName": "avg_score",
-                    "displayName": "Ø Score mit Links",
+                    "displayName": "Ø Score",
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
@@ -1549,7 +1529,7 @@
                   },
                   {
                     "fieldName": "avg_time",
-                    "displayName": "Ø Zeitangaben",
+                    "displayName": "Ø Zeit",
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
@@ -1561,7 +1541,7 @@
                   },
                   {
                     "fieldName": "avg_reach",
-                    "displayName": "Ø Erreichbarkeit",
+                    "displayName": "Ø Erreichb.",
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
@@ -1573,7 +1553,7 @@
                   },
                   {
                     "fieldName": "avg_machine",
-                    "displayName": "Ø Maschinenlesbarkeit",
+                    "displayName": "Ø Maschinenl.",
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
@@ -1585,31 +1565,7 @@
                   },
                   {
                     "fieldName": "avg_completeness",
-                    "displayName": "Ø Vollständigkeit",
-                    "format": {
-                      "type": "number-plain",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 1
-                      }
-                    }
-                  },
-                  {
-                    "fieldName": "missing_date_pct",
-                    "displayName": "ohne Datum (%)",
-                    "format": {
-                      "type": "number-plain",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 1
-                      }
-                    }
-                  },
-                  {
-                    "fieldName": "not_machine_readable_pct",
-                    "displayName": "nicht maschinenlesbar (%)",
+                    "displayName": "Ø Vollst.",
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
@@ -1899,24 +1855,24 @@
                   "datasetName": "ds_detail",
                   "fields": [
                     {
-                      "name": "title",
-                      "expression": "`title`"
-                    },
-                    {
-                      "name": "publisher_name",
-                      "expression": "`publisher_name`"
-                    },
-                    {
-                      "name": "source_label",
-                      "expression": "`source_label`"
-                    },
-                    {
                       "name": "quality_score",
                       "expression": "`quality_score`"
                     },
                     {
-                      "name": "quality_score_without_links",
-                      "expression": "`quality_score_without_links`"
+                      "name": "reasons",
+                      "expression": "`reasons`"
+                    },
+                    {
+                      "name": "title",
+                      "expression": "`title`"
+                    },
+                    {
+                      "name": "publisher_short",
+                      "expression": "`publisher_short`"
+                    },
+                    {
+                      "name": "source_label",
+                      "expression": "`source_label`"
                     },
                     {
                       "name": "time_points",
@@ -1935,8 +1891,8 @@
                       "expression": "`completeness_points`"
                     },
                     {
-                      "name": "reasons",
-                      "expression": "`reasons`"
+                      "name": "publisher_name",
+                      "expression": "`publisher_name`"
                     },
                     {
                       "name": "portal_url",
@@ -1952,91 +1908,15 @@
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
-                "title": "Datensätze mit Score und Gründen",
+                "title": "Datensätze mit Score und Gründen (schwächste zuerst)",
                 "showDescription": true,
-                "description": "Titel anklicken öffnet den Datensatz auf daten.berlin.de. Keine Personendaten."
+                "description": "Score mit Links, Teilpunkte je max. 25. Titel anklicken öffnet daten.berlin.de/datensaetze/<name>. Keine Personendaten."
               },
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "title",
-                    "displayName": "Titel",
-                    "displayAs": "link",
-                    "linkUrlTemplate": "{{ portal_url }}",
-                    "linkTextTemplate": "{{ title }}",
-                    "linkOpenInNewTab": true
-                  },
-                  {
-                    "fieldName": "publisher_name",
-                    "displayName": "Bereitsteller"
-                  },
-                  {
-                    "fieldName": "source_label",
-                    "displayName": "Quelle"
-                  },
-                  {
                     "fieldName": "quality_score",
-                    "displayName": "Score mit Links",
-                    "format": {
-                      "type": "number-plain",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 1
-                      }
-                    }
-                  },
-                  {
-                    "fieldName": "quality_score_without_links",
-                    "displayName": "Score ohne Links",
-                    "format": {
-                      "type": "number-plain",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 1
-                      }
-                    }
-                  },
-                  {
-                    "fieldName": "time_points",
-                    "displayName": "Zeitangaben (max. 25)",
-                    "format": {
-                      "type": "number-plain",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 1
-                      }
-                    }
-                  },
-                  {
-                    "fieldName": "reach_points",
-                    "displayName": "Erreichbarkeit (max. 25)",
-                    "format": {
-                      "type": "number-plain",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 1
-                      }
-                    }
-                  },
-                  {
-                    "fieldName": "machine_points",
-                    "displayName": "Maschinenlesbarkeit (max. 25)",
-                    "format": {
-                      "type": "number-plain",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 1
-                      }
-                    }
-                  },
-                  {
-                    "fieldName": "completeness_points",
-                    "displayName": "Vollständigkeit (max. 25)",
+                    "displayName": "Score",
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
@@ -2051,12 +1931,72 @@
                     "displayName": "Gründe für Punktabzug"
                   },
                   {
-                    "fieldName": "portal_url",
-                    "displayName": "Link ins Portal",
+                    "fieldName": "title",
+                    "displayName": "Titel",
                     "displayAs": "link",
                     "linkUrlTemplate": "{{ portal_url }}",
-                    "linkTextTemplate": "im Portal öffnen",
+                    "linkTextTemplate": "{{ title }}",
                     "linkOpenInNewTab": true
+                  },
+                  {
+                    "fieldName": "publisher_short",
+                    "displayName": "Bereitsteller"
+                  },
+                  {
+                    "fieldName": "source_label",
+                    "displayName": "Quelle"
+                  },
+                  {
+                    "fieldName": "time_points",
+                    "displayName": "Zeit",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "reach_points",
+                    "displayName": "Erreichb.",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "machine_points",
+                    "displayName": "Maschinenl.",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "completeness_points",
+                    "displayName": "Vollst.",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "publisher_name",
+                    "displayName": "Bereitsteller (Langname)"
                   }
                 ]
               }

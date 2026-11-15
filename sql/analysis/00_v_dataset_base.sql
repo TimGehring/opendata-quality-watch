@@ -12,6 +12,7 @@ SELECT
   s.label                                              AS source_label,
   s.is_harvested,
   p.name                                               AS publisher_name,
+  COALESCE(p.short_name, p.name)                       AS publisher_short,
   d.series_id,
   d.period_year,
   d.hvd_code,

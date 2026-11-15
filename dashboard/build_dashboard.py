@@ -31,11 +31,12 @@ SELECT source_label, quality_score
 FROM {V}v_dataset_score
 WHERE source_label <> 'unbekannt'"""),
     "ds_detail": ("Datensatz-Detail", f"""
-SELECT title, publisher_name, source_label, quality_score, quality_score_without_links,
-       time_points, reach_points, machine_points, completeness_points, reasons, portal_url
+SELECT quality_score, reasons, title, portal_url, publisher_short, publisher_name, source_label,
+       time_points, reach_points, machine_points, completeness_points
 FROM {V}v_dataset_score
 WHERE :thema = 'Alle Themen'
-   OR dataset_id IN (SELECT dataset_id FROM {V}v_dataset_theme WHERE theme = :thema)"""),
+   OR dataset_id IN (SELECT dataset_id FROM {V}v_dataset_theme WHERE theme = :thema)
+ORDER BY quality_score ASC NULLS LAST"""),
     "ds_themes": ("Themenliste (Filter)", f"""
 SELECT 'Alle Themen' AS theme
 UNION ALL
@@ -58,7 +59,8 @@ SELECT CASE WHEN rang <= 12 THEN format ELSE 'übrige Formate' END AS format,
             ELSE 'ohne Formatangabe' END AS lesbarkeit,
        SUM(resource_count) AS ressourcen
 FROM ranked
-GROUP BY 1, 2"""),
+GROUP BY 1, 2
+ORDER BY ressourcen DESC"""),
     "ds_q8b_long": ("Q8b High-Value vs. übrige", f"""
 SELECT group_name, 'Ø Score ohne Links' AS kennzahl, avg_score_without_links AS wert FROM {V}q8b_hvd_vs_rest
 UNION ALL
@@ -70,9 +72,9 @@ SELECT group_name, '% mit maschinenlesbarer Ressource', machine_readable_pct FRO
     "ds_q6": ("Q6 Erreichbarkeit", f"SELECT source_label, checked_resources, reachable, broken, broken_pct FROM {V}q6_link_reachability"),
     "ds_q6b": ("Q6b Hosts", f"SELECT host, checked_links, broken, broken_pct FROM {V}q6b_broken_hosts"),
     "ds_q8": ("Q8 Bereitsteller", f"""
-SELECT publisher_name, dataset_count, avg_score_without_links, avg_score,
-       avg_time, avg_reach, avg_machine, avg_completeness, missing_date_pct, not_machine_readable_pct
-FROM {V}q8_publisher_ranking"""),
+SELECT publisher_short, dataset_count, avg_score, avg_time, avg_reach, avg_machine, avg_completeness
+FROM {V}q8_publisher_ranking
+ORDER BY avg_score ASC"""),
     "ds_q9": ("Q9 Themen", f"SELECT theme, dataset_count, avg_score_without_links, avg_score FROM {V}q9_theme_ranking"),
 }
 
@@ -157,8 +159,9 @@ def bar(title, dataset, x_field, x_label, y_field, y_label, y_expr=None, color=N
     return {"widget": {"name": _name("bar"), "queries": query(dataset, fields, dis), "spec": spec},
             "position": {"x": x, "y": y, "width": w, "height": h}}
 
-def table(title, dataset, columns, pos, description=None):
-    """columns: (feld, Anzeigename, format|None[, extra-Dict])"""
+def table(title, dataset, columns, pos, description=None, hidden_fields=()):
+    """columns: (feld, Anzeigename, format|None[, extra-Dict]).
+    hidden_fields: nur abgefragt (z. B. für Link-Vorlagen), nicht als Spalte angezeigt."""
     cols = []
     for c in columns:
         col = {"fieldName": c[0], "displayName": c[1]}
@@ -169,7 +172,8 @@ def table(title, dataset, columns, pos, description=None):
         cols.append(col)
     x, y, w, h = pos
     return {"widget": {"name": _name("table"),
-                       "queries": query(dataset, [(c[0], f"`{c[0]}`") for c in columns], True),
+                       "queries": query(dataset, [(c[0], f"`{c[0]}`") for c in columns]
+                                        + [(h, f"`{h}`") for h in hidden_fields], True),
                        "spec": {"version": 2, "widgetType": "table", "frame": frame(title, description),
                                 "encodings": {"columns": cols}}},
             "position": {"x": x, "y": y, "width": w, "height": h}}
@@ -231,20 +235,21 @@ def page_overview():
               "Von den nicht maschinenlesbaren bieten gut zwei Drittel nur einen Kartenbild-Dienst (WMS) an.",
               "- **Geodaten aus dem FIS-Broker:** 59 % haben keine maschinenlesbare Ressource, "
               "48 % gibt es nur als Kartenbild (WMS)."], 0, 3, 12, 3),
-        counter("Datensätze", "ds_score", "COUNT(`dataset_id`)", num(0), 0, 6, 2),
-        counter("Ø Qualitätsscore (mit Links)", "ds_score", "AVG(`quality_score`)", num(1), 2, 6, 3,
+        counter("Datensätze", "ds_score", "COUNT(`dataset_id`)", num(0), 0, 6, 4),
+        counter("Ø Qualitätsscore (mit Links)", "ds_score", "AVG(`quality_score`)", num(1), 4, 6, 4,
                 description="Datensätze mit geprüften Links"),
-        counter("maschinenlesbar", "ds_score", "AVG(`has_machine_readable`)", pct(1), 5, 6, 2,
+        counter("maschinenlesbar", "ds_score", "AVG(`has_machine_readable`)", pct(1), 8, 6, 4,
                 description="≥ 1 maschinenlesbare Ressource"),
-        counter("tote Links", "ds_score", "SUM(`links_broken`) / SUM(`links_checked`)", pct(1), 7, 6, 2,
+        counter("tote Links", "ds_score", "SUM(`links_broken`) / SUM(`links_checked`)", pct(1), 0, 9, 6,
                 description=f"Anteil an geprüften Links ({LINKS_CHECKED} von {RESOURCES_TOTAL})"),
-        counter("ohne Aktualisierungsdatum", "ds_score", "1 - AVG(`has_date_updated`)", pct(1), 9, 6, 3),
+        counter("ohne Aktualisierungsdatum", "ds_score", "1 - AVG(`has_date_updated`)", pct(1), 6, 9, 6,
+                description="Feld date_updated leer"),
         bar("Ø Qualitätsscore je Quelle", "ds_score_by_source", "source_label", "Quelle", "quality_score",
             "Ø Score (mit Links)", y_expr="AVG(`quality_score`)", horizontal=True, sort="x-reversed",
-            pos=(0, 9, 6, 8),
+            pos=(0, 12, 6, 8),
             description="Ohne Quelle „unbekannt“ (4 Datensätze) und ohne Datensätze ohne geprüfte Links"),
         bar("Automatisch geerntet vs. händisch gepflegt", "ds_q7_long", "origin", "Herkunft", "punkte", "Ø Punkte",
-            color=("teil", "Teilpunkte"), stack=True, sort=None, pos=(6, 9, 6, 8),
+            color=("teil", "Teilpunkte"), stack=True, sort=None, pos=(6, 12, 6, 8),
             description="Ø Teilpunkte (je max. 25), Quelle „unbekannt“ ausgeschlossen"),
     ]
     return "ueberblick", "Überblick", L
@@ -306,15 +311,15 @@ def page_links():
     L = [
         counter("tote Links (alle geprüften Ressourcen)", "ds_q6", "SUM(`broken`) / SUM(`checked_resources`)",
                 pct(1), 0, 0, 4, 3),
-        counter("geprüfte Links", "ds_q6", "SUM(`checked_resources`)", num(0), 0, 3, 2, 3),
-        counter("davon tot", "ds_q6", "SUM(`broken`)", num(0), 2, 3, 2, 3),
+        counter("geprüfte Links", "ds_q6", "SUM(`checked_resources`)", num(0), 4, 0, 4, 3),
+        counter("davon tot", "ds_q6", "SUM(`broken`)", num(0), 8, 0, 4, 3),
         bar("Anteil toter Links je Quelle", "ds_q6", "source_label", "Quelle", "broken_pct", "tote Links (%)",
-            y_expr="SUM(`broken`) * 100.0 / SUM(`checked_resources`)", pos=(4, 0, 8, 8),
-            extra=None, description=f"Link-Check am {SNAPSHOT}: HTTP 4xx/5xx, DNS-Fehler oder Timeout = tot"),
+            y_expr="SUM(`broken`) * 100.0 / SUM(`checked_resources`)", pos=(0, 3, 8, 8),
+            description=f"Link-Check am {SNAPSHOT}: HTTP 4xx/5xx, DNS-Fehler oder Timeout = tot"),
         text(["### So wurde geprüft",
               f"Jeder Ressourcen-Link wurde am {SNAPSHOT} einmal abgerufen (erst HEAD, bei Fehler GET). "
               "Tot heißt: HTTP-Fehler 4xx/5xx, DNS-Fehler oder Zeitüberschreitung (15 s). "
-              "Ein einmaliger Check kann vorübergehende Ausfälle erwischen."], 0, 6, 4, 5),
+              "Ein einmaliger Check kann vorübergehende Ausfälle erwischen."], 8, 3, 4, 8),
         table("Hosts mit den meisten defekten Links (nur Hosts mit ≥ 20 Links)", "ds_q6b",
               [("host", "Host", None), ("checked_links", "geprüfte Links", num(0)),
                ("broken", "defekt", num(0)), ("broken_pct", "Anteil defekt (%)", num(1))],
@@ -325,14 +330,12 @@ def page_links():
 def page_publishers():
     L = [
         table("Bereitsteller mit mindestens 10 Datensätzen, schwächste zuerst", "ds_q8",
-              [("publisher_name", "Bereitsteller", None), ("dataset_count", "Datensätze", num(0)),
-               ("avg_score_without_links", "Ø Score ohne Links", num(1)), ("avg_score", "Ø Score mit Links", num(1)),
-               ("avg_time", "Ø Zeitangaben", num(1)), ("avg_reach", "Ø Erreichbarkeit", num(1)),
-               ("avg_machine", "Ø Maschinenlesbarkeit", num(1)), ("avg_completeness", "Ø Vollständigkeit", num(1)),
-               ("missing_date_pct", "ohne Datum (%)", num(1)),
-               ("not_machine_readable_pct", "nicht maschinenlesbar (%)", num(1))],
+              [("publisher_short", "Bereitsteller", None), ("dataset_count", "n", num(0)),
+               ("avg_score", "Ø Score", num(1)),
+               ("avg_time", "Ø Zeit", num(1)), ("avg_reach", "Ø Erreichb.", num(1)),
+               ("avg_machine", "Ø Maschinenl.", num(1)), ("avg_completeness", "Ø Vollst.", num(1))],
               pos=(0, 0, 12, 10),
-              description="Sortiert nach Ø Score ohne Links (aufsteigend). Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."),
+              description="Kurznamen, Langnamen im Datensatz-Detail. Ø Score mit Links, Teilpunkte je max. 25. Quellen-Filter wirkt hier nicht."),
         bar("Ø Qualitätsscore je Thema", "ds_q9", "theme", "Thema", "avg_score", "Ø Score (mit Links)",
             horizontal=True, sort="x", pos=(0, 10, 12, 10),
             extra=[("dataset_count", "Datensätze"), ("avg_score_without_links", "Ø Score ohne Links")],
@@ -345,19 +348,18 @@ def page_detail():
         field_filter("Bereitsteller", "filter-multi-select", "publisher_name", ["ds_detail"], (0, 0, 5, 2)),
         theme_param_filter((5, 0, 3, 2)),
         field_filter("Score-Bereich (mit Links)", "range-slider", "quality_score", ["ds_detail"], (8, 0, 4, 2)),
-        table("Datensätze mit Score und Gründen", "ds_detail",
-              [("title", "Titel", None,
+        table("Datensätze mit Score und Gründen (schwächste zuerst)", "ds_detail",
+              [("quality_score", "Score", num(1)),
+               ("reasons", "Gründe für Punktabzug", None),
+               ("title", "Titel", None,
                 {"displayAs": "link", "linkUrlTemplate": "{{ portal_url }}", "linkTextTemplate": "{{ title }}",
                  "linkOpenInNewTab": True}),
-               ("publisher_name", "Bereitsteller", None), ("source_label", "Quelle", None),
-               ("quality_score", "Score mit Links", num(1)), ("quality_score_without_links", "Score ohne Links", num(1)),
-               *SCORE_COLS,
-               ("reasons", "Gründe für Punktabzug", None),
-               ("portal_url", "Link ins Portal", None,
-                {"displayAs": "link", "linkUrlTemplate": "{{ portal_url }}", "linkTextTemplate": "im Portal öffnen",
-                 "linkOpenInNewTab": True})],
-              pos=(0, 2, 12, 16),
-              description="Titel anklicken öffnet den Datensatz auf daten.berlin.de. Keine Personendaten."),
+               ("publisher_short", "Bereitsteller", None), ("source_label", "Quelle", None),
+               ("time_points", "Zeit", num(1)), ("reach_points", "Erreichb.", num(1)),
+               ("machine_points", "Maschinenl.", num(1)), ("completeness_points", "Vollst.", num(1)),
+               ("publisher_name", "Bereitsteller (Langname)", None)],
+              pos=(0, 2, 12, 16), hidden_fields=("portal_url",),
+              description="Score mit Links, Teilpunkte je max. 25. Titel anklicken öffnet daten.berlin.de/datensaetze/<name>. Keine Personendaten."),
     ]
     return "detail", "Datensatz-Detail", L
 
