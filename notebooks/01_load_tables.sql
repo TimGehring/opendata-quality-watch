@@ -173,7 +173,17 @@ SELECT * FROM read_files(
 
 -- COMMAND ----------
 
--- link_check bleibt leer, bis der Link-Checker läuft.
+-- link_check.csv entsteht mit harvester/check_links.py.
+INSERT INTO link_check
+SELECT * FROM read_files(
+  '/Volumes/workspace/opendata/raw/tables/link_check.csv',
+  format => 'csv', header => true, multiLine => true, escape => '"',
+  timestampFormat => 'yyyy-MM-dd HH:mm:ss', mode => 'FAILFAST',
+  schema => 'link_check_id BIGINT, resource_id STRING, harvest_run_id INT, checked_at TIMESTAMP, http_status INT, is_reachable BOOLEAN, response_time_ms INT, content_type STRING, error_message STRING'
+);
+
+-- COMMAND ----------
+
 SELECT 'harvest_run' AS table_name, count(*) AS row_count FROM harvest_run
 UNION ALL SELECT 'publisher' AS table_name, count(*) AS row_count FROM publisher
 UNION ALL SELECT 'publisher_alias' AS table_name, count(*) AS row_count FROM publisher_alias
