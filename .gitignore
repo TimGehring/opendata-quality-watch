@@ -10,4 +10,4 @@ wheels/
 .venv
 
 # Data (raw snapshots, profiles)
-data/
+/data/

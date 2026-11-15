@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metadatenqualität Berlin Open Data</title>
+<meta name="description" content="Ergebnisse von opendata-quality-watch: Wie gut sind die Metadaten im Berliner Open-Data-Portal?">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#inhalt">Zum Inhalt springen</a>
+
+<header class="page-header">
+  <div class="wrap">
+    <p class="eyebrow">opendata-quality-watch · Ergebnisse</p>
+    <h1>Metadatenqualität im Berliner Open-Data-Portal</h1>
+    <p class="lead">
+      Wie gut sind die Metadaten der Datensätze auf daten.berlin.de? Gemessen wird, ob Zeitangaben stimmen,
+      Ressourcen maschinenlesbar und Links erreichbar sind und ob die Beschreibung vollständig ist.
+      Grundlage ist ein eigener Qualitätsscore (0–100) aus vier gleich gewichteten Kriterien.
+    </p>
+    <p class="stand"><strong>Stand: Snapshot <span data-bind="snapshot_date">…</span>,
+      <span data-bind="datasets_total" data-check="meta-datasets">…</span> Datensätze.</strong>
+      Daten: Berlin Open Data (<a href="https://datenregister.berlin.de">datenregister.berlin.de</a>).</p>
+    <nav aria-label="Abschnitte">
+      <ul class="toc">
+        <li><a href="#befunde">Befunde</a></li>
+        <li><a href="#kennzahlen">Kennzahlen</a></li>
+        <li><a href="#maschinenlesbarkeit">Maschinenlesbarkeit</a></li>
+        <li><a href="#zeit">Zeitangaben &amp; Zeitreihen</a></li>
+        <li><a href="#erreichbarkeit">Erreichbarkeit</a></li>
+        <li><a href="#bereitsteller">Bereitsteller &amp; Themen</a></li>
+        <li><a href="#datensaetze">Datensätze</a></li>
+        <li><a href="#methodik">Methodik</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="inhalt" class="wrap">
+  <p id="ladefehler" class="error" role="alert" hidden></p>
+
+  <section id="befunde" aria-labelledby="h-befunde">
+    <h2 id="h-befunde">Wichtigste Befunde</h2>
+    <ul class="findings" id="findings-list"><li>Wird geladen …</li></ul>
+  </section>
+
+  <section id="kennzahlen" aria-labelledby="h-kennzahlen">
+    <h2 id="h-kennzahlen">Kennzahlen</h2>
+    <dl class="kpis" id="kpis"></dl>
+    <div class="grid2">
+      <figure class="chart-card">
+        <h3>Ø Qualitätsscore je Quelle</h3>
+        <p class="note">Score mit Links. Ohne Quelle „unbekannt“ und ohne Datensätze ohne geprüfte Links.</p>
+        <div class="chart" style="height:300px"><canvas id="c-score-source"></canvas></div>
+        <details><summary>Daten als Tabelle</summary><div id="t-score-source"></div></details>
+      </figure>
+      <figure class="chart-card">
+        <h3>Automatisch geerntet vs. händisch gepflegt</h3>
+        <p class="note">Ø Teilpunkte (je max. 25), Quelle „unbekannt“ ausgeschlossen.</p>
+        <div class="chart" style="height:300px"><canvas id="c-q7"></canvas></div>
+        <details><summary>Daten als Tabelle</summary><div id="t-q7"></div></details>
+      </figure>
+    </div>
+  </section>
+
+  <section id="maschinenlesbarkeit" aria-labelledby="h-maschinenlesbarkeit">
+    <h2 id="h-maschinenlesbarkeit">Maschinenlesbarkeit</h2>
+    <div class="grid2 wide-left">
+      <figure class="chart-card">
+        <h3>Formatverteilung der Ressourcen (Top 12 + übrige)</h3>
+        <div class="chart" style="height:420px"><canvas id="c-formats"></canvas></div>
+        <details><summary>Daten als Tabelle (alle Formate)</summary><div id="t-formats"></div></details>
+      </figure>
+      <aside class="callout" aria-labelledby="h-wms">
+        <h3 id="h-wms">Vorbehalt: WMS</h3>
+        <p>WMS (Web Map Service) liefert nur ein <strong>Kartenbild</strong>, keine Sachdaten. Deshalb zählt
+          WMS (ebenso WMTS) hier <strong>nicht als maschinenlesbar</strong>. Viele Geodatensätze bieten nur WMS an;
+          sie erhalten keine Punkte für Maschinenlesbarkeit und tragen in der Datensatzliste den Grund „nur Kartenbild“.</p>
+      </aside>
+    </div>
+    <div class="grid2">
+      <figure class="chart-card">
+        <h3>High-Value-Datensätze (EU) vs. übrige</h3>
+        <p class="note">High-Value-Datensätze nach EU-Durchführungsverordnung 2023/138; Score ohne Links.</p>
+        <div class="chart" style="height:280px"><canvas id="c-hvd"></canvas></div>
+        <details><summary>Daten als Tabelle</summary><div id="t-hvd"></div></details>
+      </figure>
+      <div class="chart-card">
+        <h3>Maschinenlesbare Datensätze je Quelle</h3>
+        <p class="note">Datensätze mit mindestens einer maschinenlesbaren Ressource.</p>
+        <div id="t-q4b"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="zeit" aria-labelledby="h-zeit">
+    <h2 id="h-zeit">Zeitangaben &amp; Zeitreihen</h2>
+    <div class="grid2 wide-left">
+      <figure class="chart-card">
+        <h3>Datenstand je Quelle (Jahr der letzten Aktualisierung)</h3>
+        <p class="note">Anteil in der Quelle. Alt ist nicht schlecht: historische Daten dürfen ein altes Datum haben.</p>
+        <div class="chart" style="height:340px"><canvas id="c-q1"></canvas></div>
+        <details><summary>Daten als Tabelle</summary><div id="t-q1"></div></details>
+      </figure>
+      <aside class="callout" aria-labelledby="h-granularity">
+        <h3 id="h-granularity">Hinweis zu temporal_granularity</h3>
+        <p>Das Feld <strong>temporal_granularity</strong> beschreibt die <strong>Auflösung</strong> der Daten
+          (z. B. „Jahr“, „Monat“), <strong>nicht den Aktualisierungsrhythmus</strong>. Eine erste Annahme, es sei der
+          Rhythmus, haben die Daten widerlegt. Deshalb wird nicht geprüft, ob ein Rhythmus eingehalten wird.</p>
+      </aside>
+    </div>
+    <div class="grid2">
+      <div class="chart-card">
+        <h3>Widersprüchliche Zeitangaben je Regel und Quelle</h3>
+        <div id="t-q2"></div>
+      </div>
+      <figure class="chart-card">
+        <h3>Anteil Datensätze in Zeitreihen je Quelle</h3>
+        <p class="note">Zeitreihe = mehrere Jahrgänge desselben Datensatzes (Heuristik über den Namen).</p>
+        <div class="chart" style="height:300px"><canvas id="c-q3a"></canvas></div>
+        <details><summary>Daten als Tabelle</summary><div id="t-q3a"></div></details>
+      </figure>
+    </div>
+    <div class="grid2 wide-left">
+      <div class="chart-card">
+        <h3>Geprüfte Reihen, die womöglich eingestellt sind (letzter Jahrgang ≤ 2023)</h3>
+        <p class="note">Nur von Hand geprüfte Reihen aus Webformular/Datenrubrik.</p>
+        <div id="t-q3b"></div>
+      </div>
+      <aside class="callout" aria-labelledby="h-lor">
+        <h3 id="h-lor">LOR-Reform 2021 prüfen</h3>
+        <p>Endet eine Reihe um 2020/2021, kann sie unter neuem Namen weiterlaufen: 2021 wurden die Lebensweltlich
+          orientierten Räume (LOR) neu zugeschnitten. Vor dem Urteil „eingestellt“ im Portal nach einer
+          Nachfolge-Reihe suchen.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section id="erreichbarkeit" aria-labelledby="h-erreichbarkeit">
+    <h2 id="h-erreichbarkeit">Erreichbarkeit</h2>
+    <dl class="kpis" id="kpis-links"></dl>
+    <div class="grid2 wide-left">
+      <figure class="chart-card">
+        <h3>Anteil toter Links je Quelle</h3>
+        <p class="note">HTTP 4xx/5xx, DNS-Fehler oder Timeout = tot.</p>
+        <div class="chart" style="height:300px"><canvas id="c-q6"></canvas></div>
+        <details><summary>Daten als Tabelle</summary><div id="t-q6"></div></details>
+      </figure>
+      <aside class="callout" aria-labelledby="h-linkcheck">
+        <h3 id="h-linkcheck">So wurde geprüft</h3>
+        <p>Jeder Ressourcen-Link wurde am <span data-bind="link_check_date">…</span> einmal abgerufen (erst HEAD, bei
+          Fehler GET). Tot heißt: HTTP-Fehler 4xx/5xx, DNS-Fehler oder Zeitüberschreitung (15 s). Ein einmaliger
+          Check kann vorübergehende Ausfälle erwischen. Geprüft wurden <span data-bind="links_checked">…</span> von
+          <span data-bind="resources_total">…</span> Ressourcen (<span data-bind="link_check_coverage">…</span>).</p>
+      </aside>
+    </div>
+    <div class="chart-card">
+      <h3>Hosts mit den meisten defekten Links (nur Hosts mit ≥ 20 Links)</h3>
+      <div id="t-q6b"></div>
+    </div>
+  </section>
+
+  <section id="bereitsteller" aria-labelledby="h-bereitsteller">
+    <h2 id="h-bereitsteller">Bereitsteller &amp; Themen</h2>
+    <div class="chart-card">
+      <h3>Bereitsteller mit mindestens 10 Datensätzen, schwächste zuerst</h3>
+      <p class="note">Ø Score mit Links, Teilpunkte je max. 25. Langname beim Überfahren des Kurznamens.</p>
+      <div id="t-q8"></div>
+    </div>
+    <figure class="chart-card">
+      <h3>Ø Qualitätsscore je Thema</h3>
+      <p class="note">Ein Datensatz kann zu mehreren Themen gehören. Themen mit wenigen Datensätzen schwanken stark.</p>
+      <div class="chart" style="height:640px"><canvas id="c-q9"></canvas></div>
+      <details><summary>Daten als Tabelle</summary><div id="t-q9"></div></details>
+    </figure>
+  </section>
+
+  <section id="datensaetze" aria-labelledby="h-datensaetze">
+    <h2 id="h-datensaetze">Datensätze mit Score und Gründen</h2>
+    <p class="note">Schwächste zuerst. Score mit Links, Teilpunkte je max. 25. Der Titel führt zum Datensatz im Portal.
+      Keine Personendaten.</p>
+    <form class="filters" id="ds-filter" role="search" onsubmit="return false">
+      <div><label for="f-text">Suche in Titel und Name</label>
+        <input id="f-text" type="search" autocomplete="off" placeholder="z. B. Radverkehr"></div>
+      <div><label for="f-source">Quelle</label><select id="f-source"><option value="">Alle Quellen</option></select></div>
+      <div><label for="f-publisher">Bereitsteller</label><select id="f-publisher"><option value="">Alle Bereitsteller</option></select></div>
+    </form>
+    <p id="ds-count" class="count" aria-live="polite"></p>
+    <div class="table-scroll">
+      <table class="data" id="ds-table">
+        <caption class="sr-only">Datensätze mit Qualitätsscore, Teilpunkten und Gründen für Punktabzug</caption>
+        <thead><tr>
+          <th scope="col" class="num">Score</th><th scope="col">Titel</th><th scope="col">Bereitsteller</th>
+          <th scope="col">Quelle</th><th scope="col" class="num"><abbr title="Zeitangaben">Zeit</abbr></th>
+          <th scope="col" class="num"><abbr title="Erreichbarkeit">Erreichb.</abbr></th>
+          <th scope="col" class="num"><abbr title="Maschinenlesbarkeit">Maschinenl.</abbr></th>
+          <th scope="col" class="num"><abbr title="Vollständigkeit">Vollst.</abbr></th>
+          <th scope="col">Gründe für Punktabzug</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button type="button" id="ds-more" class="more" hidden>Weitere 100 anzeigen</button>
+  </section>
+
+  <section id="methodik" aria-labelledby="h-methodik">
+    <h2 id="h-methodik">Methodik</h2>
+    <div class="grid2">
+      <div>
+        <h3>Datenquelle</h3>
+        <p>CKAN-API von datenregister.berlin.de (<code>package_search</code>), Abruf als Snapshot am
+          <strong><span data-bind="snapshot_date">…</span></strong>: <span data-bind="entries_total">…</span> Einträge,
+          davon <strong><span data-bind="datasets_total">…</span> Datensätze</strong> (<code>berlin_type = datensatz</code>)
+          mit <span data-bind="resources_total">…</span> Ressourcen. Die Daten werden normalisiert in Databricks geladen;
+          alle Auswertungen sind SQL-Views. Diese Seite zeigt einen Export dieser Views
+          (Export am <span data-bind="exported_at">…</span>).</p>
+        <p>Es werden keine Personendaten gespeichert, nur ob Kontaktangaben vorhanden sind.</p>
+        <h3>Qualitätsscore: 4 × 25 Punkte</h3>
+        <ul>
+          <li><strong>Zeitangaben (25):</strong> Aktualisierungsdatum 10, Zeitraum 5, keine Widersprüche 10</li>
+          <li><strong>Erreichbarkeit (25):</strong> Anteil erreichbarer Ressourcen-Links × 25</li>
+          <li><strong>Maschinenlesbarkeit (25):</strong> mindestens eine maschinenlesbare Ressource</li>
+          <li><strong>Vollständigkeit (25):</strong> Format bei jeder Ressource 10, Beschreibung ≥ 100 Zeichen 5,
+            ≥ 3 Schlagwörter 5, offene Lizenz 5</li>
+        </ul>
+        <p>„Score ohne Links“ rechnet die übrigen 75 Punkte auf 100 hoch. Datensätze ohne geprüften Link haben keinen
+          Score mit Links.</p>
+      </div>
+      <div>
+        <h3>Vorbehalte</h3>
+        <ul>
+          <li>Der Score ist eine <strong>eigene Definition</strong>, keine offizielle Kennzahl. Deshalb stehen die
+            Teilpunkte immer daneben.</li>
+          <li><strong>WMS/WMTS</strong> liefern nur ein Kartenbild und zählen nicht als maschinenlesbar.</li>
+          <li><strong>Zeitreihen</strong> werden heuristisch über den Datensatznamen erkannt (Jahreszahlen, Stichtage,
+            IDs entfernt); nur ein Teil ist von Hand geprüft.</li>
+          <li><strong>Link-Check</strong> einmalig am <span data-bind="link_check_date">…</span>; vorübergehende
+            Ausfälle können als tot zählen. Die 404-Fehler bei Stromnetz Berlin wurden stichprobenhaft per GET bestätigt.</li>
+          <li>Es ist eine <strong>Momentaufnahme</strong>; das Portal ändert sich laufend.</li>
+        </ul>
+        <h3>KI-Nutzung</h3>
+        <p>Das Projekt wurde mit KI-Unterstützung erstellt: <strong>Claude (Chat)</strong> für Planung, ER-Modell und
+          SQL-Analysen, <strong>Claude Code</strong> für Harvester, Transform, Deploy-Skripte, Link-Check, Dashboard und
+          diese Seite. Die Abfragen werden lokal gegen die exportierten Tabellen getestet, die Zahlen dieser Seite per
+          Skript gegen die Views geprüft und Ergebnisse stichprobenhaft im Portal nachgesehen. Alle Entscheidungen hat
+          der Autor nachvollzogen.</p>
+        <h3>Quellcode</h3>
+        <p><a data-bind-href="repository" href="https://github.com/TimGehring/opendata-quality-watch">github.com/TimGehring/opendata-quality-watch</a>
+          (MIT-Lizenz). Diagramme mit Chart.js (MIT), lokal eingebunden, kein Tracking.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="page-footer">
+  <div class="wrap">
+    <p>Daten: Berlin Open Data (<a href="https://datenregister.berlin.de">datenregister.berlin.de</a>).
+      Stand Snapshot <span data-bind="snapshot_date">…</span>, exportiert am <span data-bind="exported_at">…</span>.</p>
+  </div>
+</footer>
+
+<script src="vendor/chart.umd.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
