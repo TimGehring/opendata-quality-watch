@@ -6,6 +6,7 @@ CREATE OR REPLACE VIEW v_dataset_base AS
 SELECT
   d.dataset_id,
   d.name,
+  d.offer_key,                                          -- Angebot (WMS/WFS-Zwillinge zusammengefasst)
   d.title,
   'https://daten.berlin.de/datensaetze/' || d.name     AS portal_url,
   COALESCE(d.source_system_id, 'unbekannt')            AS source_system_id,

@@ -58,6 +58,9 @@ MONTH_BEFORE_YEAR_RE = re.compile(
     r"oktober|november|dezember)[-_](?=(?:19|20)\d{2}(?!\d))"
 )
 SEPARATORS_RE = re.compile(r"[-_]+")
+# FIS-Broker legt Kartenbild (WMS/WMTS) und Daten (WFS) als getrennte Datensätze an:
+# <angebot>-wms-<guid[:8]>, <angebot>-wfs-<guid[:8]>
+OFFER_SUFFIX_RE = re.compile(r"-(?:wms|wfs|wmts)-([0-9a-f]{8})$")
 
 warnings: list[str] = []
 
@@ -132,6 +135,17 @@ def strip_id_suffix(dataset: dict) -> str:
     if guid and len(guid) >= 8 and name.endswith("-" + guid[:8].lower()):
         return name[: -9]
     return NUMERIC_ID_SUFFIX_RE.sub("", name)
+
+
+def offer_key(dataset: dict) -> str:
+    """Name without the ending -(wms|wfs|wmts)-<8 hex>, if the hex part equals guid[:8]
+    (same check as strip_id_suffix). WMS and WFS twins of one offer get the same key."""
+    name = dataset["name"]
+    match = OFFER_SUFFIX_RE.search(name)
+    guid = extras_value(dataset, "guid")
+    if match and guid and len(guid) >= 8 and match.group(1) == guid[:8].lower():
+        return name[: match.start()]
+    return name
 
 
 def series_key(base_name: str) -> str:
@@ -331,6 +345,7 @@ def build_datasets(datasets, run_id, alias_to_id, series_assignment, period_year
             "dataset_id": ds["id"],
             "harvest_run_id": run_id,
             "name": name,
+            "offer_key": offer_key(ds),
             "title": clean(ds.get("title")) or name,
             "publisher_id": alias_to_id.get(ds.get("author")),
             "ckan_organization": clean((ds.get("organization") or {}).get("title")),
@@ -545,6 +560,9 @@ def main() -> None:
     print("  link_check            0  (not filled by transform)")
     in_series = sum(1 for d in tables["dataset"] if d["series_id"] is not None)
     print(f"Datasets in series: {in_series} of {len(datasets)}")
+    offers = Counter(d["offer_key"] for d in tables["dataset"])
+    print(f"Offers (offer_key): {len(offers)}, with more than one dataset: "
+          f"{sum(1 for n in offers.values() if n > 1)}")
     verified = sum(1 for s in tables["series"] if s["manually_verified"])
     print(f"Series manually verified: {verified} of {len(tables['series'])}")
     print(f"Review: {len(candidates)} publisher candidates, top {len(series_review)} series, "

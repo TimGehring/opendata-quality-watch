@@ -148,7 +148,7 @@ SELECT * FROM read_files(
   '/Volumes/workspace/opendata/raw/tables/dataset.csv',
   format => 'csv', header => true, multiLine => true, escape => '"',
   timestampFormat => 'yyyy-MM-dd HH:mm:ss', mode => 'FAILFAST',
-  schema => 'dataset_id STRING, harvest_run_id INT, name STRING, title STRING, publisher_id INT, ckan_organization STRING, source_system_id STRING, license_id STRING, hvd_code STRING, series_id INT, period_year INT, is_open BOOLEAN, notes_length INT, num_tags INT, num_resources INT, has_maintainer BOOLEAN, has_contact_email BOOLEAN, date_released DATE, date_updated DATE, temporal_coverage_from DATE, temporal_coverage_to DATE, temporal_granularity STRING, geographical_coverage STRING, geographical_granularity STRING, metadata_created TIMESTAMP, metadata_modified TIMESTAMP'
+  schema => 'dataset_id STRING, harvest_run_id INT, name STRING, offer_key STRING, title STRING, publisher_id INT, ckan_organization STRING, source_system_id STRING, license_id STRING, hvd_code STRING, series_id INT, period_year INT, is_open BOOLEAN, notes_length INT, num_tags INT, num_resources INT, has_maintainer BOOLEAN, has_contact_email BOOLEAN, date_released DATE, date_updated DATE, temporal_coverage_from DATE, temporal_coverage_to DATE, temporal_granularity STRING, geographical_coverage STRING, geographical_granularity STRING, metadata_created TIMESTAMP, metadata_modified TIMESTAMP'
 );
 
 -- COMMAND ----------

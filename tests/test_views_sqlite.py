@@ -29,7 +29,7 @@ def show(q,lim=30):
   cur=con.execute(q); print(" | ".join(c[0] for c in cur.description))
   for r in cur.fetchmany(lim): print(r)
   print()
-for v in ["q1_data_age ORDER BY source_label, age_bucket","q2_time_conflicts","q3a_series_fragmentation","q3b_possibly_discontinued","q4a_format_distribution ORDER BY resource_count DESC","q4b_machine_readable_by_source","q5_completeness","q6_link_reachability","q7_harvested_vs_manual","q8_publisher_ranking","q9_theme_ranking","q8b_hvd_vs_rest","q6b_broken_hosts ORDER BY broken DESC"]:
+for v in ["q1_data_age ORDER BY source_label, age_bucket","q2_time_conflicts","q3a_series_fragmentation","q3b_possibly_discontinued","q4a_format_distribution ORDER BY resource_count DESC","q4b_machine_readable_by_source","q5_completeness","q6_link_reachability","q7_harvested_vs_manual","q8_publisher_ranking","q9_theme_ranking","q8b_hvd_vs_rest","q4c_offers_machine_readable ORDER BY dimension, offer_count DESC","q6b_broken_hosts ORDER BY broken DESC"]:
   print("==",v); show("SELECT * FROM "+v)
 show("SELECT COUNT(*), ROUND(AVG(quality_score_without_links),1), MIN(quality_score_without_links), MAX(quality_score_without_links) FROM v_dataset_score")
 show("SELECT SUM(dataset_count) FROM q1_data_age")
@@ -38,3 +38,24 @@ show("SELECT reasons, COUNT(*) n FROM v_dataset_score GROUP BY reasons ORDER BY 
 show("SELECT COUNT(*) FROM v_dataset_score WHERE reasons IS NULL AND NOT (quality_score = 100)")
 show("SELECT SUM(checked_links), SUM(broken) FROM q6b_broken_hosts")
 show("SELECT COUNT(DISTINCT dataset_id), COUNT(*) FROM v_dataset_theme")
+
+# Ankerwerte Q4c (Angebote statt Datensätze, Snapshot 13.11.2026), auch in Dashboard und Ergebnisseite.
+# Bricht mit Exit-Code 1 ab, wenn ein Wert nicht mehr stimmt.
+q4c={(d,g):(n,mr,pct,multi) for d,g,n,mr,pct,multi in con.execute(
+  "SELECT dimension, group_name, offer_count, with_machine_readable, machine_readable_pct, multi_dataset_offers FROM q4c_offers_machine_readable")}
+anchors=[
+  ("HVD 208 Angebote / 113 maschinenlesbar (54,3 %)", q4c[("HVD","High-Value-Angebot")][:3], (208,113,54.3)),
+  ("übrige 1764 / 1492 (84,6 %)",                    q4c[("HVD","übrige")][:3],             (1764,1492,84.6)),
+  ("FIS-Broker 982 / 664 (67,6 %), 318 ohne",        q4c[("Quelle","FIS-Broker")][:3],      (982,664,67.6)),
+  ("alle 1972 / 1605",                               q4c[("gesamt","alle Angebote")][:2],   (1972,1605)),
+  ("FIS-Angebote mit > 1 Datensatz",                 q4c[("Quelle","FIS-Broker")][3],       622),
+  ("Summe Angebote je Quelle = alle",                sum(v[0] for (d,_),v in q4c.items() if d=="Quelle"), 1972),
+  ("Summe Datensätze über Angebote = Datensätze",    con.execute("SELECT dataset_count FROM q4c_offers_machine_readable WHERE dimension='gesamt'").fetchone()[0],
+                                                     con.execute("SELECT COUNT(*) FROM dataset").fetchone()[0]),
+]
+print("== Ankerwerte Q4c")
+bad=0
+for label,got,want in anchors:
+  ok=got==want; bad+=not ok
+  print(f"  {'OK    ' if ok else 'FEHLER'} {label}: {got}" + ("" if ok else f" erwartet {want}"))
+if bad: sys.exit(1)

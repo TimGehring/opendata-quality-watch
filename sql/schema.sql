@@ -103,6 +103,7 @@ CREATE TABLE dataset (
   dataset_id                STRING     NOT NULL COMMENT 'CKAN-UUID',
   harvest_run_id            INT        NOT NULL,
   name                      STRING     NOT NULL COMMENT 'CKAN-Slug',
+  offer_key                 STRING     NOT NULL COMMENT 'Angebot: name ohne Endung -(wms|wfs|wmts)-<guid[:8]>, fasst WMS/WFS-Zwillinge zusammen',
   title                     STRING     NOT NULL,
   publisher_id              INT,
   ckan_organization         STRING              COMMENT 'CKAN-Organisation (Portal-Konto, nicht die Datenquelle)',
