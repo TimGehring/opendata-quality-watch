@@ -3,31 +3,27 @@
 #     (d. h. der Export ist nicht veraltet).
 #  2. Die Seite wird in headless Chrome gerendert. Alle Elemente mit data-check werden mit Werten
 #     verglichen, die dieses Skript unabhängig von der Seite direkt aus den Views berechnet.
-#  3. Ankerwerte, die auch im Dashboard und in der Präsentation stehen (2.595 Datensätze, Ø 74,8, 8,4 % tote Links).
+#     Die Befundtexte (site/texts.json) werden mit diesen Werten gefüllt und verglichen; zusätzlich wird
+#     geprüft, ob die Worte im Text ("Alle", "fast jedes zweite", ...) noch zu den Zahlen passen.
+#  3. Ankerwerte, die auch im Dashboard und in der Präsentation stehen (2.595 Datensätze, Ø 74,8, 8,4 % tote Links,
+#     Angebote: 54,3 % / 84,6 %, 318 von 982).
 #
 # Aufruf aus dem Repo-Root: python3 scripts/check_site.py   (Exit-Code 1 bei Abweichungen)
 # Braucht: databricks CLI (angemeldet), Node >= 22 und Google Chrome (Pfad über CHROME überschreibbar).
 # Die Seite wird über scripts/render_dom.mjs (DevTools-Protokoll) gerendert, weil --dump-dom nicht auf fetch() wartet.
 import functools, http.server, json, os, re, subprocess, sys, threading
-from decimal import Decimal, ROUND_HALF_UP
 from html.parser import HTMLParser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from export_results import QUERIES, VIEWS, run  # noqa: E402
+from texts import de, fmt, load_texts, placeholders  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 CHROME = os.environ.get("CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 NBSP = " "
 problems = []
-
-
-def de(value, places=0):
-    """Wie Intl.NumberFormat('de-DE') mit fester Nachkommastellenzahl."""
-    q = Decimal(str(value)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
-    s = f"{q:,.{places}f}"
-    return s.replace(",", "_").replace(".", ",").replace("_", ".")
 
 
 def pct(value_in_percent, places=1):
@@ -73,28 +69,56 @@ SELECT
   (SELECT SUM(checked_resources) FROM q6_link_reachability)                  AS links_checked,
   (SELECT SUM(broken) FROM q6_link_reachability)                             AS links_broken,
   (SELECT ROUND(100.0 * SUM(broken) / SUM(checked_resources), 1) FROM q6_link_reachability) AS broken_pct,
-  (SELECT machine_readable_pct FROM q8b_hvd_vs_rest WHERE group_name = 'High-Value-Datensatz') AS hvd_mr_pct,
-  (SELECT machine_readable_pct FROM q8b_hvd_vs_rest WHERE group_name = 'übrige')               AS rest_mr_pct,
   (SELECT COUNT(*) FROM v_dataset_score WHERE source_system_id = 'harvest-stromnetzberlin')     AS strom_n,
   (SELECT COUNT(*) FROM v_dataset_score WHERE source_system_id = 'harvest-stromnetzberlin'
           AND links_checked > 0 AND links_broken = links_checked)                              AS strom_dead,
-  (SELECT ROUND(AVG(completeness_points), 1) FROM v_dataset_score
+  (SELECT AVG(completeness_points) FROM v_dataset_score
           WHERE source_system_id = 'harvest-stromnetzberlin')                                  AS strom_compl,
-  (SELECT ROUND(AVG(completeness_points), 1) FROM v_dataset_score)                             AS all_compl,
-  (SELECT AVG(CASE WHEN resources_map_image > 0 THEN 1.0 ELSE 0 END) FROM v_dataset_score
-          WHERE hvd_code IS NOT NULL AND has_machine_readable = 0)                             AS hvd_wms_share,
-  (SELECT ROUND(100 * AVG(1 - has_machine_readable), 0) FROM v_dataset_score
-          WHERE source_system_id = 'harvest-fisbroker')                                        AS fis_nmr_pct,
-  (SELECT ROUND(100 * AVG(CASE WHEN has_machine_readable = 0 AND resources_map_image > 0 THEN 1 ELSE 0 END), 0)
-          FROM v_dataset_score WHERE source_system_id = 'harvest-fisbroker')                   AS fis_wms_pct
+  (SELECT AVG(completeness_points) FROM v_dataset_score)                                       AS all_compl,
+  (SELECT COUNT(*) FROM v_dataset_score WHERE source_system_id = 'harvest-fisbroker')           AS fis_datasets
 """)[0]
 print("  " + ", ".join(f"{k}={v}" for k, v in e.items()))
 
-if 2 / 3 < e["hvd_wms_share"] < 0.72:
-    hvd_words = "gut zwei Drittel"
-else:
-    hvd_words = None  # Formulierung im Befund passt nicht mehr, siehe unten
-    report(False, "Befund HVD/WMS", f"Anteil {e['hvd_wms_share']:.3f} ist nicht mehr 'gut zwei Drittel'")
+# Angebote (Q4c) direkt aus dem View
+o = {(r["dimension"], r["group_name"]): r for r in run("SELECT * FROM q4c_offers_machine_readable")}
+hvd, rest, fis = o[("HVD", "High-Value-Angebot")], o[("HVD", "übrige")], o[("Quelle", "FIS-Broker")]
+print(f"  Angebote: HVD {hvd['with_machine_readable']}/{hvd['offer_count']} ({hvd['machine_readable_pct']}), "
+      f"übrige {rest['with_machine_readable']}/{rest['offer_count']} ({rest['machine_readable_pct']}), "
+      f"FIS {fis['with_machine_readable']}/{fis['offer_count']}, FIS-Paare {fis['multi_dataset_offers']}")
+stromnetz_status = [r["http_status"] for r in run(QUERIES["stromnetz_http"])]
+
+# Werte für die Platzhalter in site/texts.json, unabhängig von findings.json berechnet
+values = {
+    "stromnetz_datasets": e["strom_n"],
+    "stromnetz_avg_completeness": e["strom_compl"],
+    "all_avg_completeness": e["all_compl"],
+    "hvd_offers": hvd["offer_count"],
+    "hvd_offers_not_mr": hvd["without_machine_readable"],
+    "rest_offers_not_mr_share": rest["without_machine_readable"] / rest["offer_count"],
+    "fis_pairs": fis["multi_dataset_offers"],
+    "fis_offers": fis["offer_count"],
+    "fis_offers_not_mr": fis["without_machine_readable"],
+    "fis_offers_not_mr_share": fis["without_machine_readable"] / fis["offer_count"],
+}
+texts = load_texts()
+used = [(k, kind) for f in texts["findings"] for k, kind in placeholders(f["text"])]
+for key in sorted({k for k, _ in used} - set(values)):
+    report(False, f"texts.json: {{{key}}}", "ohne Prüfwert im Skript")
+
+# Passen die Worte im Text noch zu den Zahlen?
+words = " ".join(f["text"] for f in texts["findings"])
+hvd_share = hvd["without_machine_readable"] / hvd["offer_count"]
+rest_share = values["rest_offers_not_mr_share"]
+for phrase, ok, detail in (
+    ("Alle {stromnetz_datasets|int}", e["strom_dead"] == e["strom_n"], f"({e['strom_dead']} von {e['strom_n']} nur tote Links)"),
+    ("(HTTP 404)", stromnetz_status == [404], f"(Status: {stromnetz_status})"),
+    ("überdurchschnittlich", e["strom_compl"] > e["all_compl"], f"({e['strom_compl']:.2f} > {e['all_compl']:.2f})"),
+    ("Fast jedes zweite", 0.4 <= hvd_share < 0.5, f"(Anteil {hvd_share:.3f})"),
+    ("etwa jedes siebte", min(range(2, 20), key=lambda n: abs(rest_share - 1 / n)) == 7, f"(Anteil {rest_share:.3f}, 1/7 = 0,143)"),
+    ("meist als zwei getrennte Datensätze", 2 * fis["multi_dataset_offers"] > e["fis_datasets"] / 2,
+     f"({2 * fis['multi_dataset_offers']} von {e['fis_datasets']} FIS-Datensätzen in Paaren)"),
+):
+    report(phrase in words and ok, f"Befundtext {phrase!r} passt", detail)
 
 expected = {
     "meta-datasets": de(e["datasets"]),
@@ -106,18 +130,11 @@ expected = {
     "links-share": pct(e["broken_pct"]),
     "links-checked": de(e["links_checked"]),
     "links-broken": de(e["links_broken"]),
-    "f-stromnetz-n": de(e["strom_dead"]),
-    "f-stromnetz-compl": de(e["strom_compl"], 1),
-    "f-all-compl": de(e["all_compl"], 1),
-    "f-hvd-mr": pct(e["hvd_mr_pct"]),
-    "f-rest-mr": pct(e["rest_mr_pct"]),
-    "f-fis-nmr": pct(e["fis_nmr_pct"], 0),
-    "f-fis-wms": pct(e["fis_wms_pct"], 0),
     "ds-count": de(e["datasets"]),
+    "q4c-hvd-pct": pct(hvd["machine_readable_pct"]),
+    "q4c-rest-pct": pct(rest["machine_readable_pct"]),
+    **{f"f:{k}": fmt(values[k], kind) for k, kind in used},
 }
-if hvd_words:
-    expected["f-hvd-wms"] = hvd_words
-report(e["strom_dead"] == e["strom_n"], "Befund Stromnetz 'Alle … Datensätze'", f"({e['strom_dead']} von {e['strom_n']})")
 
 # ---------------------------------------------------------------- 3. Seite rendern
 print("3. Seite in headless Chrome")
@@ -171,7 +188,9 @@ for key in sorted(set(found) - set(expected)):
 
 # ---------------------------------------------------------------- 4. Anker
 print("4. Ankerwerte (Dashboard/Präsentation)")
-for key, want in (("kpi-datasets", "2.595"), ("kpi-score", "74,8"), ("kpi-broken", "8,4 %")):
+for key, want in (("kpi-datasets", "2.595"), ("kpi-score", "74,8"), ("kpi-broken", "8,4 %"),
+                  ("q4c-hvd-pct", "54,3 %"), ("q4c-rest-pct", "84,6 %"),
+                  ("f:fis_offers_not_mr", "318"), ("f:fis_offers", "982")):
     report(found.get(key, [None])[0] == want, f"{key} = {want}", f"(Seite: {found.get(key)})")
 
 print(f"\n{len(problems)} Abweichung(en)")

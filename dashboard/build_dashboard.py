@@ -5,8 +5,17 @@
 # Alle Datasets lesen nur Views aus workspace.opendata (sql/analysis/). Im Dashboard selbst
 # stehen höchstens Umformungen für die Darstellung (Top 12 + Rest, Spalten untereinander).
 # Raster: 12 Spalten breit, Höhe in Rastereinheiten.
-import json
+#
+# Befund- und Methodiktexte kommen aus site/texts.json (gleiche Quelle wie die Ergebnisseite),
+# die Zahlen darin aus site/data/findings.json. Deshalb vorher scripts/export_results.py ausführen.
+import json, sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from texts import load_findings, load_texts, render  # noqa: E402
+
+TEXTS = load_texts()
+FINDINGS = load_findings()
 
 V = "workspace.opendata."
 SNAPSHOT = "13.11.2026"
@@ -66,6 +75,10 @@ ORDER BY ressourcen DESC"""),
 SELECT group_name, 'Ø Score ohne Links' AS kennzahl, avg_score_without_links AS wert FROM {V}q8b_hvd_vs_rest
 UNION ALL
 SELECT group_name, '% mit maschinenlesbarer Ressource', machine_readable_pct FROM {V}q8b_hvd_vs_rest"""),
+    "ds_q4c": ("Q4c Angebote High-Value vs. übrige", f"""
+SELECT group_name, offer_count, dataset_count, with_machine_readable, without_machine_readable, machine_readable_pct
+FROM {V}q4c_offers_machine_readable
+WHERE dimension = 'HVD'"""),
     "ds_q1": ("Q1 Datenstand", f"SELECT source_label, age_bucket, dataset_count, share_in_source_pct FROM {V}q1_data_age"),
     "ds_q2": ("Q2 Widersprüche", f"SELECT rule, source_label, dataset_count FROM {V}q2_time_conflicts"),
     "ds_q3a": ("Q3a Zeitreihen", f"SELECT source_label, dataset_count, in_series, in_series_pct, series_count FROM {V}q3a_series_fragmentation"),
@@ -229,13 +242,8 @@ def page_overview():
               "Grundlage ist ein eigener Qualitätsscore (0–100) aus vier gleich gewichteten Kriterien, aufgeteilt nach Quelle, Bereitsteller und Thema.",
               "",
               f"**Stand: Snapshot {SNAPSHOT}, 2.595 Datensätze.**"], 0, 0, 12, 3),
-        text(["### Wichtigste Befunde",
-              "- **Stromnetz Berlin:** Alle 250 geernteten Datensätze verweisen nur auf tote Links (HTTP 404), "
-              "obwohl ihre Metadaten überdurchschnittlich vollständig sind (Ø 21,9 von 25 Punkten, gesamt 19,7).",
-              "- **EU-High-Value-Datensätze:** nur 39,6 % maschinenlesbar (übrige 64,6 %). "
-              "Von den nicht maschinenlesbaren bieten gut zwei Drittel nur einen Kartenbild-Dienst (WMS) an.",
-              "- **Geodaten aus dem FIS-Broker:** 59 % haben keine maschinenlesbare Ressource, "
-              "48 % gibt es nur als Kartenbild (WMS)."], 0, 3, 12, 3),
+        text(["### Wichtigste Befunde"]
+             + [f"- **{f['label']}:** {render(f['text'], FINDINGS)}" for f in TEXTS["findings"]], 0, 3, 12, 3),
         counter("Datensätze", "ds_score", "COUNT(`dataset_id`)", num(0), 0, 6, 4),
         counter("Ø Qualitätsscore (mit Links)", "ds_score", "AVG(`quality_score`)", num(1), 4, 6, 4,
                 description="Datensätze mit geprüften Links"),
@@ -268,8 +276,13 @@ def page_machine():
               "",
               "Die Formatverteilung gilt für alle Quellen (der Quellen-Filter wirkt hier nicht)."], 8, 0, 4, 9),
         bar("High-Value-Datensätze (EU) vs. übrige", "ds_q8b_long", "kennzahl", "Kennzahl", "wert", "Wert",
-            color=("group_name", "Gruppe"), stack=False, sort=None, pos=(0, 9, 12, 7),
+            color=("group_name", "Gruppe"), stack=False, sort=None, pos=(0, 9, 6, 7),
             description="High-Value-Datensätze nach EU-Durchführungsverordnung 2023/138; Score ohne Links"),
+        bar("High-Value vs. übrige auf Angebotsebene", "ds_q4c", "group_name", "Gruppe", "machine_readable_pct",
+            "% Angebote mit maschinenlesbarer Variante", sort=None, pos=(6, 9, 6, 7),
+            extra=[("offer_count", "Angebote"), ("with_machine_readable", "maschinenlesbar"),
+                   ("without_machine_readable", "ohne")],
+            description=TEXTS["q4c_note"]),
     ]
     return "maschinenlesbarkeit", "Maschinenlesbarkeit", L
 
@@ -285,7 +298,7 @@ def page_time():
               "Deshalb prüfen wir nicht, ob ein Rhythmus eingehalten wird."], 7, 0, 5, 4),
         table("Widersprüchliche Zeitangaben je Regel und Quelle", "ds_q2",
               [("rule", "Regel", None), ("source_label", "Quelle", None), ("dataset_count", "Datensätze", num(0))],
-              pos=(7, 4, 5, 9)),
+              pos=(7, 4, 5, 9), description=TEXTS["q2_note"]["text"] + " Siehe Methodik."),
         bar("Anteil Datensätze in Zeitreihen je Quelle", "ds_q3a", "source_label", "Quelle", "in_series_pct",
             "Anteil in Zeitreihen (%)", y_expr="SUM(`in_series_pct`)", pos=(0, 8, 7, 7),
             description="Zeitreihe = mehrere Jahrgänge desselben Datensatzes (Heuristik über den Namen)"),
@@ -387,7 +400,8 @@ def page_method():
               "- **Zeitreihen** werden heuristisch über den Datensatznamen erkannt (Jahreszahlen, Stichtage, IDs entfernt); nur ein Teil ist von Hand geprüft.",
               f"- **Link-Check** einmalig am {SNAPSHOT}; vorübergehende Ausfälle können als tot zählen. "
               "Die 404-Fehler bei Stromnetz Berlin wurden stichprobenhaft per GET bestätigt.",
-              "- Der Quellen-Filter wirkt nur auf Auswertungen, die nach Quelle aufgeteilt sind."], 0, 5, 6, 6),
+              f"- **{TEXTS['q2_note']['label']}:** {TEXTS['q2_note']['text']}",
+              "- Der Quellen-Filter wirkt nur auf Auswertungen, die nach Quelle aufgeteilt sind."], 0, 5, 6, 7),
         text(["### KI-Nutzung",
               "Das Projekt wurde mit KI-Unterstützung erstellt: **Claude (Chat)** für Planung, ER-Modell und SQL-Analysen, "
               "**Claude Code** für Harvester, Transform, Deploy-Skripte, Link-Check und dieses Dashboard. "
@@ -395,7 +409,11 @@ def page_method():
               "Alle Entscheidungen hat der Autor nachvollzogen.",
               "",
               "### Quellcode",
-              REPO_HINT], 6, 5, 6, 6),
+              REPO_HINT], 6, 5, 6, 7),
+        text(["### Stichprobe", TEXTS["stichprobe"]["intro"], ""]
+             + [f"{i}. {c}" for i, c in enumerate(TEXTS["stichprobe"]["cases"], start=1)]
+             + ["", "Daraus folgten zwei Korrekturen:", ""]
+             + [f"- {c}" for c in TEXTS["stichprobe"]["corrections"]], 0, 12, 12, 9),
     ]
     return "methodik", "Methodik", L
 

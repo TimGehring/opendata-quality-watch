@@ -86,11 +86,17 @@
         <div class="chart" style="height:280px"><canvas id="c-hvd"></canvas></div>
         <details><summary>Daten als Tabelle</summary><div id="t-hvd"></div></details>
       </figure>
-      <div class="chart-card">
-        <h3>Maschinenlesbare Datensätze je Quelle</h3>
-        <p class="note">Datensätze mit mindestens einer maschinenlesbaren Ressource.</p>
-        <div id="t-q4b"></div>
-      </div>
+      <figure class="chart-card">
+        <h3>High-Value vs. übrige auf Angebotsebene</h3>
+        <p class="note" id="q4c-note"></p>
+        <div class="chart" style="height:280px"><canvas id="c-q4c"></canvas></div>
+        <details><summary>Daten als Tabelle</summary><div id="t-q4c"></div></details>
+      </figure>
+    </div>
+    <div class="chart-card">
+      <h3>Maschinenlesbare Datensätze je Quelle</h3>
+      <p class="note">Datensätze mit mindestens einer maschinenlesbaren Ressource.</p>
+      <div id="t-q4b"></div>
     </div>
   </section>
 
@@ -114,6 +120,7 @@
       <div class="chart-card">
         <h3>Widersprüchliche Zeitangaben je Regel und Quelle</h3>
         <div id="t-q2"></div>
+        <p class="note" id="q2-hint"></p>
       </div>
       <figure class="chart-card">
         <h3>Anteil Datensätze in Zeitreihen je Quelle</h3>
@@ -237,8 +244,11 @@
             IDs entfernt); nur ein Teil ist von Hand geprüft.</li>
           <li><strong>Link-Check</strong> einmalig am <span data-bind="link_check_date">…</span>; vorübergehende
             Ausfälle können als tot zählen. Die 404-Fehler bei Stromnetz Berlin wurden stichprobenhaft per GET bestätigt.</li>
+          <li id="q2-note"></li>
           <li>Es ist eine <strong>Momentaufnahme</strong>; das Portal ändert sich laufend.</li>
         </ul>
+        <h3>Stichprobe</h3>
+        <div id="stichprobe"></div>
         <h3>KI-Nutzung</h3>
         <p>Das Projekt wurde mit KI-Unterstützung erstellt: <strong>Claude (Chat)</strong> für Planung, ER-Modell und
           SQL-Analysen, <strong>Claude Code</strong> für Harvester, Transform, Deploy-Skripte, Link-Check, Dashboard und

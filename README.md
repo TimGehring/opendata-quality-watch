@@ -72,6 +72,11 @@ angemeldet per `databricks auth login`, sowie `jq`.
    - `notebooks/01_load_tables.sql`: Alternative zu Schritt 3 im Browser, baut die Tabellen in `workspace.opendata` neu auf
      (`sql/schema.sql`), lädt alle CSVs per `read_files` und zeigt die Zeilenzahlen.
 
+Angebote: Der FIS-Broker legt Kartenbild (WMS) und Daten (WFS) eines Angebots als zwei Datensätze an.
+`dataset.offer_key` ist der Name ohne Endung `-(wms|wfs|wmts)-<guid[:8]>` und fasst diese Zwillinge
+zusammen (View `q4c_offers_machine_readable`). Die manuelle Stichprobe dazu steht in
+`docs/sampling-check.md`.
+
 Datenmodell: Publisher werden nur bei identischem Namen (nach trim/lower/Leerzeichen)
 automatisch zusammengeführt, darüber hinaus nur die geprüften Paare aus
 `seeds/publisher_merge.csv`. Ähnliche Namen stehen zur Prüfung in
@@ -100,6 +105,7 @@ erzeugt und nicht von Hand bearbeitet. Alle Datasets lesen nur Views aus `worksp
 
 ```bash
 ./scripts/deploy_databricks.sh analysis    # Views anlegen (vorher: python3 tests/test_views_sqlite.py)
+python3 scripts/export_results.py          # site/data/*.json, liefert auch die Zahlen der Befundtexte
 ./scripts/deploy_databricks.sh dashboard   # JSON bauen, Dashboard anlegen/aktualisieren, veröffentlichen
 python3 dashboard/check_widgets.py         # jede Widget-Abfrage per Statement-API: Fehler oder leer?
 ```
@@ -118,7 +124,9 @@ statische Ergebnisseite ohne Login: **<https://timgehring.github.io/opendata-qua
 Sie zeigt dieselben Abschnitte wie das Dashboard (Befunde, Kennzahlen, Maschinenlesbarkeit,
 Zeitangaben, Erreichbarkeit, Bereitsteller & Themen, durchsuchbare Datensatzliste, Methodik).
 Alle Zahlen stammen aus JSON-Dateien in `site/data/`, die aus den Views exportiert werden; im
-HTML/JS steht keine Ergebniszahl fest. Die Datensatzliste enthält keine Personendaten.
+HTML/JS steht keine Ergebniszahl fest. Befund- und Methodiktexte (Befunde, Q2-Hinweis, Stichprobe)
+stehen einmal in `site/texts.json` mit Platzhaltern; Ergebnisseite und Dashboard füllen sie mit
+denselben Werten aus `site/data/findings.json`. Die Datensatzliste enthält keine Personendaten.
 
 ```bash
 python3 scripts/export_results.py   # Views per Statement-API abfragen -> site/data/*.json, meta.json

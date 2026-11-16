@@ -62,5 +62,23 @@ for page in DASH["pages"]:
                 problems += 1
             sample = "" if err or not rows else f"  z. B. {rows[0][:4]}"
             print(f"[{page['displayName']}] {title} ({q['query']['datasetName']}): {status}{sample}")
+# Ankerwerte (Snapshot 13.11.2026), auch auf der Ergebnisseite und in der Präsentation
+print("\nAnkerwerte")
+def anchor(label, ok, detail):
+    global problems
+    problems += not ok
+    print(f"  {'OK    ' if ok else 'FEHLER'} {label} {detail}")
+rows, err = run(f"SELECT group_name, machine_readable_pct FROM ({dataset_sql('ds_q4c')}) t")
+q4c = {} if err else {g: float(v) for g, v in rows}
+anchor("Q4c High-Value-Angebote 54,3 %", q4c.get("High-Value-Angebot") == 54.3, f"(Widget: {q4c or err})")
+anchor("Q4c übrige Angebote 84,6 %", q4c.get("übrige") == 84.6, f"(Widget: {q4c or err})")
+rows, err = run("SELECT without_machine_readable, offer_count FROM workspace.opendata.q4c_offers_machine_readable "
+                "WHERE dimension = 'Quelle' AND group_name = 'FIS-Broker'")
+anchor("Q4c FIS-Broker 318 von 982 ohne maschinenlesbare Variante", rows == [["318", "982"]], f"(View: {rows or err})")
+befunde = "".join(l for page in DASH["pages"] for item in page["layout"]
+                  for l in item["widget"].get("multilineTextboxSpec", {}).get("lines", []))
+for text in ("(95 von 208)", "(15,4\u00a0%)", "Bei 32\u00a0% der Geodaten-Angebote (318 von 982)"):
+    anchor(f"Befundtext enthält {text!r}", text in befunde, "")
+
 print(f"\n{problems} Problem(e)")
 sys.exit(1 if problems else 0)

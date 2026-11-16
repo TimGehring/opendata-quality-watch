@@ -1,10 +1,11 @@
 // Ergebnisseite opendata-quality-watch. Alle Zahlen kommen aus data/*.json
 // (erzeugt von scripts/export_results.py). Elemente mit data-check prüft scripts/check_site.py.
+// Befund- und Methodiktexte stehen in texts.json (dieselben Texte nutzt das Dashboard).
 "use strict";
 
 const FILES = ["meta", "kpis", "findings", "stromnetz_http", "score_by_source", "q1_data_age",
   "q2_time_conflicts", "q3a_series_fragmentation", "q3b_possibly_discontinued", "q4a_format_distribution",
-  "q4b_machine_readable_by_source", "q6_link_reachability", "q6b_broken_hosts", "q7_harvested_vs_manual",
+  "q4b_machine_readable_by_source", "q4c_offers_machine_readable", "q6_link_reachability", "q6b_broken_hosts", "q7_harvested_vs_manual",
   "q8_publisher_ranking", "q8b_hvd_vs_rest", "q9_theme_ranking", "datasets"];
 
 // Farben: Referenzpalette (dataviz), feste Reihenfolge
@@ -28,16 +29,23 @@ function fmtDate(iso) {
 function fmtDateTime(iso) {
   return new Date(iso).toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "medium", timeStyle: "short" }) + " Uhr";
 }
-function fractionWords(share) {
-  if (Math.abs(share - 2 / 3) < 0.01) return "zwei Drittel";
-  if (share > 2 / 3 && share < 0.72) return "gut zwei Drittel";
-  if (share >= 0.72 && share < 0.78) return "rund drei Viertel";
-  if (Math.abs(share - 0.5) < 0.02) return "die Hälfte";
-  return pct(share, 0);
-}
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const chk = (key, html) => `<span data-check="${key}">${html}</span>`;
 const $ = (sel) => document.querySelector(sel);
+
+// ------------------------------------------------------------ Texte aus texts.json
+// {schluessel|format} wie in scripts/texts.py; jeder Wert wird mit data-check="f:<schluessel>" geprüft.
+const FORMATS = { int: (v) => fmt(v), dec1: (v) => fmt(v, 1), pct0: (v) => pct(v, 0), pct1: (v) => pct(v, 1) };
+function md(text) {   // nur **fett** und [Text](https://…)
+  return esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>');
+}
+function fill(template, values) {
+  return md(template).replace(/\{(\w+)\|(int|dec1|pct0|pct1)\}/g, (_, key, kind) => {
+    if (!(key in values)) throw new Error(`texts.json: Wert ${key} fehlt in findings.json`);
+    return chk(`f:${key}`, FORMATS[kind](values[key]));
+  });
+}
 
 // ------------------------------------------------------------ Tabellen
 // cols: [feld, Überschrift, formatter?, numerisch?]
@@ -107,22 +115,20 @@ function renderMeta(m) {
   document.querySelectorAll("[data-bind-href]").forEach((el) => { el.href = m[el.dataset.bindHref]; });
 }
 
-function renderFindings(f, http) {
-  const statuses = http.map((r) => r.http_status).filter((s) => s !== null);
-  const httpText = statuses.length === 1 ? ` (HTTP ${statuses[0]})` : "";
-  const allBroken = f.stromnetz_all_links_broken === f.stromnetz_datasets
-    ? `Alle ${chk("f-stromnetz-n", fmt(f.stromnetz_datasets))} geernteten Datensätze verweisen`
-    : `${chk("f-stromnetz-n", fmt(f.stromnetz_all_links_broken))} von ${fmt(f.stromnetz_datasets)} geernteten Datensätzen verweisen`;
-  const better = f.stromnetz_avg_completeness > f.all_avg_completeness ? "überdurchschnittlich" : "unterdurchschnittlich";
-  $("#findings-list").innerHTML = `
-    <li><strong>Stromnetz Berlin:</strong> ${allBroken} nur auf tote Links${httpText}, obwohl ihre Metadaten
-      ${better} vollständig sind (Ø ${chk("f-stromnetz-compl", fmt(f.stromnetz_avg_completeness, 1))} von 25 Punkten,
-      gesamt ${chk("f-all-compl", fmt(f.all_avg_completeness, 1))}).</li>
-    <li><strong>EU-High-Value-Datensätze:</strong> nur ${chk("f-hvd-mr", pct(f.hvd_machine_readable_share))} maschinenlesbar
-      (übrige ${chk("f-rest-mr", pct(f.rest_machine_readable_share))}). Von den nicht maschinenlesbaren bieten
-      ${chk("f-hvd-wms", fractionWords(f.hvd_not_mr_map_image_share))} nur einen Kartenbild-Dienst (WMS) an.</li>
-    <li><strong>Geodaten aus dem FIS-Broker:</strong> ${chk("f-fis-nmr", pct(f.fis_not_machine_readable_share, 0))} haben
-      keine maschinenlesbare Ressource, ${chk("f-fis-wms", pct(f.fis_map_image_only_share, 0))} gibt es nur als Kartenbild (WMS).</li>`;
+function renderFindings(texts, f) {
+  $("#findings-list").innerHTML = texts.findings
+    .map((x) => `<li><strong>${esc(x.label)}:</strong> ${fill(x.text, f)}</li>`).join("");
+}
+
+function renderMethodTexts(texts) {
+  $("#q2-note").innerHTML = `<strong>${esc(texts.q2_note.label)}:</strong> ${md(texts.q2_note.text)}`;
+  $("#q2-hint").innerHTML = `${md(texts.q2_note.text)} Siehe <a href="#methodik">Methodik</a>.`;
+  $("#q4c-note").textContent = texts.q4c_note;
+  const st = texts.stichprobe;
+  $("#stichprobe").innerHTML = `<p>${md(st.intro)}</p>
+    <ol>${st.cases.map((c) => `<li>${md(c)}</li>`).join("")}</ol>
+    <p>Daraus folgten zwei Korrekturen:</p>
+    <ul>${st.corrections.map((c) => `<li>${md(c)}</li>`).join("")}</ul>`;
 }
 
 function kpiTiles(target, tiles) {
@@ -191,6 +197,24 @@ function renderHvd(rows) {
   table("#t-hvd", "High-Value-Datensätze vs. übrige", rows, [["group_name", "Gruppe"], ["dataset_count", "Datensätze", (v) => fmt(v), true],
     ["avg_score_without_links", "Ø Score ohne Links", (v) => fmt(v, 1), true],
     ["machine_readable_pct", "maschinenlesbar", (v) => pctv(v), true]]);
+}
+
+function renderQ4c(rows) {
+  const hvd = ["High-Value-Angebot", "übrige"].map((g) => rows.find((r) => r.dimension === "HVD" && r.group_name === g));
+  const all = rows.find((r) => r.dimension === "gesamt");
+  chart("c-q4c", { labels: hvd.map((r) => r.group_name), max: 100, unit: NBSP + "%", stacked: true,
+    datasets: [
+      { label: "mit maschinenlesbarer Variante", backgroundColor: C.blue, data: hvd.map((r) => r.machine_readable_pct) },
+      { label: "ohne", backgroundColor: C.orange, data: hvd.map((r) => 100 - r.machine_readable_pct) }],
+    aria: "Gestapeltes Balkendiagramm Angebote mit maschinenlesbarer Variante: " + hvd.map((r) =>
+      `${r.group_name} ${pctv(r.machine_readable_pct)} (${fmt(r.with_machine_readable)} von ${fmt(r.offer_count)})`).join("; ") });
+  const keys = { "High-Value-Angebot": "q4c-hvd-pct", "übrige": "q4c-rest-pct" };
+  table("#t-q4c", "Angebote mit maschinenlesbarer Variante, High-Value vs. übrige", [...hvd, all], [
+    ["group_name", "Gruppe"], ["offer_count", "Angebote", (v) => fmt(v), true],
+    ["dataset_count", "Datensätze", (v) => fmt(v), true],
+    ["with_machine_readable", "maschinenlesbar", (v) => fmt(v), true],
+    ["without_machine_readable", "ohne", (v) => fmt(v), true],
+    ["machine_readable_pct", "Anteil", (v, r) => (keys[r.group_name] ? chk(keys[r.group_name], pctv(v)) : pctv(v)), true]]);
 }
 
 function renderQ4b(rows) {
@@ -314,19 +338,23 @@ function setupDatasets(rows) {
 
 // ------------------------------------------------------------ Start
 async function main() {
-  const entries = await Promise.all(FILES.map(async (f) => {
-    const r = await fetch(`data/${f}.json`);
-    if (!r.ok) throw new Error(`data/${f}.json: HTTP ${r.status}`);
-    return [f, await r.json()];
-  }));
+  const load = async (path) => {
+    const r = await fetch(path);
+    if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
+    return r.json();
+  };
+  const entries = await Promise.all(FILES.map(async (f) => [f, await load(`data/${f}.json`)]));
   const d = Object.fromEntries(entries);
+  const texts = await load("texts.json");
   renderMeta(d.meta);
-  renderFindings(d.findings, d.stromnetz_http);
+  renderFindings(texts, d.findings);
+  renderMethodTexts(texts);
   renderKpis(d.kpis);
   renderScoreBySource(d.score_by_source);
   renderQ7(d.q7_harvested_vs_manual);
   renderFormats(d.q4a_format_distribution);
   renderHvd(d.q8b_hvd_vs_rest);
+  renderQ4c(d.q4c_offers_machine_readable);
   renderQ4b(d.q4b_machine_readable_by_source);
   renderQ1(d.q1_data_age);
   renderQ2(d.q2_time_conflicts);

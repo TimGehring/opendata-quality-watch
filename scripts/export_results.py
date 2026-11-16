@@ -17,7 +17,8 @@ CATALOG, SCHEMA = "workspace", "opendata"
 
 VIEWS = [
     "q1_data_age", "q2_time_conflicts", "q3a_series_fragmentation", "q3b_possibly_discontinued",
-    "q4a_format_distribution", "q4b_machine_readable_by_source", "q5_completeness",
+    "q4a_format_distribution", "q4b_machine_readable_by_source", "q4c_offers_machine_readable",
+    "q5_completeness",
     "q6_link_reachability", "q6b_broken_hosts", "q7_harvested_vs_manual",
     "q8_publisher_ranking", "q8b_hvd_vs_rest", "q9_theme_ranking",
 ]
@@ -41,25 +42,32 @@ FROM v_dataset_score
 WHERE source_label <> 'unbekannt'
 GROUP BY source_label
 ORDER BY avg_score DESC""",
-    # Zahlen für die "Wichtigsten Befunde" (gleiche Aussagen wie im Dashboard)
+    # Zahlen für die "Wichtigsten Befunde"; Texte in site/texts.json (gleiche Texte im Dashboard)
     "findings": """
-SELECT
-  -- Stromnetz Berlin
-  SUM(CASE WHEN source_system_id = 'harvest-stromnetzberlin' THEN 1 ELSE 0 END)            AS stromnetz_datasets,
-  SUM(CASE WHEN source_system_id = 'harvest-stromnetzberlin' AND links_checked > 0
-            AND links_broken = links_checked THEN 1 ELSE 0 END)                             AS stromnetz_all_links_broken,
-  AVG(CASE WHEN source_system_id = 'harvest-stromnetzberlin' THEN completeness_points END) AS stromnetz_avg_completeness,
-  AVG(completeness_points)                                                                  AS all_avg_completeness,
-  -- EU-High-Value-Datensätze
-  AVG(CASE WHEN hvd_code IS NOT NULL THEN has_machine_readable END)                         AS hvd_machine_readable_share,
-  AVG(CASE WHEN hvd_code IS NULL THEN has_machine_readable END)                             AS rest_machine_readable_share,
-  AVG(CASE WHEN hvd_code IS NOT NULL AND has_machine_readable = 0
-           THEN CASE WHEN resources_map_image > 0 THEN 1 ELSE 0 END END)                    AS hvd_not_mr_map_image_share,
-  -- FIS-Broker
-  AVG(CASE WHEN source_system_id = 'harvest-fisbroker' THEN 1 - has_machine_readable END)  AS fis_not_machine_readable_share,
-  AVG(CASE WHEN source_system_id = 'harvest-fisbroker'
-           THEN CASE WHEN has_machine_readable = 0 AND resources_map_image > 0 THEN 1 ELSE 0 END END) AS fis_map_image_only_share
-FROM v_dataset_score""",
+SELECT s.*, o.*
+FROM (
+  SELECT
+    -- Stromnetz Berlin
+    SUM(CASE WHEN source_system_id = 'harvest-stromnetzberlin' THEN 1 ELSE 0 END)            AS stromnetz_datasets,
+    SUM(CASE WHEN source_system_id = 'harvest-stromnetzberlin' AND links_checked > 0
+              AND links_broken = links_checked THEN 1 ELSE 0 END)                             AS stromnetz_all_links_broken,
+    AVG(CASE WHEN source_system_id = 'harvest-stromnetzberlin' THEN completeness_points END) AS stromnetz_avg_completeness,
+    AVG(completeness_points)                                                                  AS all_avg_completeness
+  FROM v_dataset_score
+) s
+CROSS JOIN (
+  -- Angebote (WMS/WFS-Zwillinge zusammengefasst), Q4c
+  SELECT
+    MAX(CASE WHEN dimension = 'HVD' AND group_name = 'High-Value-Angebot' THEN offer_count END)              AS hvd_offers,
+    MAX(CASE WHEN dimension = 'HVD' AND group_name = 'High-Value-Angebot' THEN without_machine_readable END) AS hvd_offers_not_mr,
+    MAX(CASE WHEN dimension = 'HVD' AND group_name = 'übrige' THEN offer_count END)                          AS rest_offers,
+    MAX(CASE WHEN dimension = 'HVD' AND group_name = 'übrige' THEN without_machine_readable / offer_count END) AS rest_offers_not_mr_share,
+    MAX(CASE WHEN dimension = 'Quelle' AND group_name = 'FIS-Broker' THEN multi_dataset_offers END)         AS fis_pairs,
+    MAX(CASE WHEN dimension = 'Quelle' AND group_name = 'FIS-Broker' THEN offer_count END)                  AS fis_offers,
+    MAX(CASE WHEN dimension = 'Quelle' AND group_name = 'FIS-Broker' THEN without_machine_readable END)     AS fis_offers_not_mr,
+    MAX(CASE WHEN dimension = 'Quelle' AND group_name = 'FIS-Broker' THEN without_machine_readable / offer_count END) AS fis_offers_not_mr_share
+  FROM q4c_offers_machine_readable
+) o""",
     "stromnetz_http": """
 SELECT l.http_status, COUNT(*) AS links
 FROM v_latest_link_check l

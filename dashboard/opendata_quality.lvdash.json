@@ -98,6 +98,15 @@
       ]
     },
     {
+      "name": "ds_q4c",
+      "displayName": "Q4c Angebote High-Value vs. übrige",
+      "queryLines": [
+        "SELECT group_name, offer_count, dataset_count, with_machine_readable, without_machine_readable, machine_readable_pct\n",
+        "FROM workspace.opendata.q4c_offers_machine_readable\n",
+        "WHERE dimension = 'HVD'"
+      ]
+    },
+    {
       "name": "ds_q1",
       "displayName": "Q1 Datenstand",
       "queryLines": [
@@ -188,8 +197,8 @@
               "lines": [
                 "### Wichtigste Befunde\n",
                 "- **Stromnetz Berlin:** Alle 250 geernteten Datensätze verweisen nur auf tote Links (HTTP 404), obwohl ihre Metadaten überdurchschnittlich vollständig sind (Ø 21,9 von 25 Punkten, gesamt 19,7).\n",
-                "- **EU-High-Value-Datensätze:** nur 39,6 % maschinenlesbar (übrige 64,6 %). Von den nicht maschinenlesbaren bieten gut zwei Drittel nur einen Kartenbild-Dienst (WMS) an.\n",
-                "- **Geodaten aus dem FIS-Broker:** 59 % haben keine maschinenlesbare Ressource, 48 % gibt es nur als Kartenbild (WMS).\n"
+                "- **EU-High-Value-Daten:** Fast jedes zweite High-Value-Angebot (95 von 208) hat keine maschinenlesbare Variante – bei den übrigen nur etwa jedes siebte (15,4 %). WMS- und WFS-Einträge desselben Angebots sind dabei zusammengefasst.\n",
+                "- **Geodaten aus dem FIS-Broker:** Der FIS-Broker legt Kartenbild (WMS) und Daten (WFS) meist als zwei getrennte Datensätze an (622 Paare). Bei 32 % der Geodaten-Angebote (318 von 982) gibt es keine maschinenlesbare Variante.\n"
               ]
             }
           },
@@ -764,7 +773,97 @@
           "position": {
             "x": 0,
             "y": 9,
-            "width": 12,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "bar_13",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_q4c",
+                  "fields": [
+                    {
+                      "name": "group_name",
+                      "expression": "`group_name`"
+                    },
+                    {
+                      "name": "machine_readable_pct",
+                      "expression": "`machine_readable_pct`"
+                    },
+                    {
+                      "name": "offer_count",
+                      "expression": "`offer_count`"
+                    },
+                    {
+                      "name": "with_machine_readable",
+                      "expression": "`with_machine_readable`"
+                    },
+                    {
+                      "name": "without_machine_readable",
+                      "expression": "`without_machine_readable`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "frame": {
+                "showTitle": true,
+                "title": "High-Value vs. übrige auf Angebotsebene",
+                "showDescription": true,
+                "description": "Ein Angebot fasst WMS- und WFS-Datensatz desselben Geodatenangebots zusammen. Maschinenlesbar, wenn mindestens ein Datensatz des Angebots eine maschinenlesbare Ressource hat. Der Score pro Datensatz bleibt unverändert."
+              },
+              "encodings": {
+                "x": {
+                  "fieldName": "group_name",
+                  "displayName": "Gruppe",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "machine_readable_pct",
+                  "displayName": "% Angebote mit maschinenlesbarer Variante",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "extra": [
+                  {
+                    "fieldName": "offer_count",
+                    "displayName": "Angebote"
+                  },
+                  {
+                    "fieldName": "with_machine_readable",
+                    "displayName": "maschinenlesbar"
+                  },
+                  {
+                    "fieldName": "without_machine_readable",
+                    "displayName": "ohne"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 9,
+            "width": 6,
             "height": 7
           }
         }
@@ -777,7 +876,7 @@
       "layout": [
         {
           "widget": {
-            "name": "bar_13",
+            "name": "bar_14",
             "queries": [
               {
                 "name": "main_query",
@@ -855,7 +954,7 @@
         },
         {
           "widget": {
-            "name": "text_14",
+            "name": "text_15",
             "multilineTextboxSpec": {
               "lines": [
                 "### Hinweis zu temporal_granularity\n",
@@ -872,7 +971,7 @@
         },
         {
           "widget": {
-            "name": "table_15",
+            "name": "table_16",
             "queries": [
               {
                 "name": "main_query",
@@ -901,7 +1000,9 @@
               "widgetType": "table",
               "frame": {
                 "showTitle": true,
-                "title": "Widersprüchliche Zeitangaben je Regel und Quelle"
+                "title": "Widersprüchliche Zeitangaben je Regel und Quelle",
+                "showDescription": true,
+                "description": "Das Portal zeigt „Aktualisiert“ vor „Veröffentlicht“ an; das Feld wird uneinheitlich genutzt (Datenstand vs. letzte Aktualisierung). Siehe Methodik."
               },
               "encodings": {
                 "columns": [
@@ -938,7 +1039,7 @@
         },
         {
           "widget": {
-            "name": "bar_16",
+            "name": "bar_17",
             "queries": [
               {
                 "name": "main_query",
@@ -1005,7 +1106,7 @@
         },
         {
           "widget": {
-            "name": "table_17",
+            "name": "table_18",
             "queries": [
               {
                 "name": "main_query",
@@ -1099,7 +1200,7 @@
         },
         {
           "widget": {
-            "name": "text_18",
+            "name": "text_19",
             "multilineTextboxSpec": {
               "lines": [
                 "### LOR-Reform 2021 prüfen\n",
@@ -1125,7 +1226,7 @@
       "layout": [
         {
           "widget": {
-            "name": "kpi_19",
+            "name": "kpi_20",
             "queries": [
               {
                 "name": "main_query",
@@ -1171,7 +1272,7 @@
         },
         {
           "widget": {
-            "name": "kpi_20",
+            "name": "kpi_21",
             "queries": [
               {
                 "name": "main_query",
@@ -1218,7 +1319,7 @@
         },
         {
           "widget": {
-            "name": "kpi_21",
+            "name": "kpi_22",
             "queries": [
               {
                 "name": "main_query",
@@ -1265,7 +1366,7 @@
         },
         {
           "widget": {
-            "name": "bar_22",
+            "name": "bar_23",
             "queries": [
               {
                 "name": "main_query",
@@ -1332,7 +1433,7 @@
         },
         {
           "widget": {
-            "name": "text_23",
+            "name": "text_24",
             "multilineTextboxSpec": {
               "lines": [
                 "### So wurde geprüft\n",
@@ -1349,7 +1450,7 @@
         },
         {
           "widget": {
-            "name": "table_24",
+            "name": "table_25",
             "queries": [
               {
                 "name": "main_query",
@@ -1448,7 +1549,7 @@
       "layout": [
         {
           "widget": {
-            "name": "table_25",
+            "name": "table_26",
             "queries": [
               {
                 "name": "main_query",
@@ -1588,7 +1689,7 @@
         },
         {
           "widget": {
-            "name": "bar_26",
+            "name": "bar_27",
             "queries": [
               {
                 "name": "main_query",
@@ -1680,7 +1781,7 @@
       "layout": [
         {
           "widget": {
-            "name": "filter_27",
+            "name": "filter_28",
             "queries": [
               {
                 "name": "f_publisher_name_ds_detail",
@@ -1726,7 +1827,7 @@
         },
         {
           "widget": {
-            "name": "filter_28",
+            "name": "filter_29",
             "queries": [
               {
                 "name": "f_theme_values",
@@ -1801,7 +1902,7 @@
         },
         {
           "widget": {
-            "name": "filter_29",
+            "name": "filter_30",
             "queries": [
               {
                 "name": "f_quality_score_ds_detail",
@@ -1847,7 +1948,7 @@
         },
         {
           "widget": {
-            "name": "table_30",
+            "name": "table_31",
             "queries": [
               {
                 "name": "main_query",
@@ -2019,7 +2120,7 @@
       "layout": [
         {
           "widget": {
-            "name": "text_31",
+            "name": "text_32",
             "multilineTextboxSpec": {
               "lines": [
                 "### Datenquelle\n",
@@ -2038,7 +2139,7 @@
         },
         {
           "widget": {
-            "name": "text_32",
+            "name": "text_33",
             "multilineTextboxSpec": {
               "lines": [
                 "### Qualitätsscore: 4 × 25 Punkte\n",
@@ -2060,7 +2161,7 @@
         },
         {
           "widget": {
-            "name": "text_33",
+            "name": "text_34",
             "multilineTextboxSpec": {
               "lines": [
                 "### Vorbehalte\n",
@@ -2068,6 +2169,7 @@
                 "- **WMS/WMTS** liefern nur ein Kartenbild und zählen nicht als maschinenlesbar.\n",
                 "- **Zeitreihen** werden heuristisch über den Datensatznamen erkannt (Jahreszahlen, Stichtage, IDs entfernt); nur ein Teil ist von Hand geprüft.\n",
                 "- **Link-Check** einmalig am 13.11.2026; vorübergehende Ausfälle können als tot zählen. Die 404-Fehler bei Stromnetz Berlin wurden stichprobenhaft per GET bestätigt.\n",
+                "- **Regel „Angezeigtes Aktualisierungsdatum liegt vor der Veröffentlichung“:** Das Portal zeigt „Aktualisiert“ vor „Veröffentlicht“ an; das Feld wird uneinheitlich genutzt (Datenstand vs. letzte Aktualisierung).\n",
                 "- Der Quellen-Filter wirkt nur auf Auswertungen, die nach Quelle aufgeteilt sind.\n"
               ]
             }
@@ -2076,12 +2178,12 @@
             "x": 0,
             "y": 5,
             "width": 6,
-            "height": 6
+            "height": 7
           }
         },
         {
           "widget": {
-            "name": "text_34",
+            "name": "text_35",
             "multilineTextboxSpec": {
               "lines": [
                 "### KI-Nutzung\n",
@@ -2096,7 +2198,35 @@
             "x": 6,
             "y": 5,
             "width": 6,
-            "height": 6
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "text_36",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Stichprobe\n",
+                "Am 16.11.2026 wurden fünf Datensätze im Portal von Hand gegen die berechneten Werte geprüft (Protokoll: docs/sampling-check.md im Repository). Die Werte pro Datensatz stimmten in allen fünf Fällen; zwei Fälle führten zu Korrekturen der Auswertung.\n",
+                "\n",
+                "1. [Standardeinspeisprofil BHKW 2013](https://daten.berlin.de/datensaetze/standardeinspeisprofil-bhkw-2013-berlin) (Stromnetz, toter Link): Download-Link liefert im Portal tatsächlich 404. **Bestätigt.**\n",
+                "2. [ALKIS Berlin Gebäude – WMS](https://daten.berlin.de/datensaetze/alkis-berlin-gebaude-wms-986ea575) (High-Value, „nur Kartenbild“): Der Datensatz enthält wirklich nur WMS, aber es gibt einen eigenen Zwilling mit WFS (alkis-berlin-gebaude-wfs-728b368a). **Korrektur 1.**\n",
+                "3. [Los_5_2024](https://daten.berlin.de/datensaetze/los_5_2024-berlin) (Aktualisierungsdatum vor Veröffentlichung): Das Portal zeigt „Veröffentlicht 16.04.2024 · Aktualisiert 01.01.2024“. Die Regel bleibt. **Korrektur 2.**\n",
+                "4. [Haushaltsplan 2020/2021](https://daten.berlin.de/datensaetze/haushaltsplan-2020-2021) (kein Datum, nicht maschinenlesbar): kein Aktualisierungsdatum und keine maschinenlesbare Ressource. **Bestätigt.**\n",
+                "5. [Liste der häufigen Vornamen 2018](https://daten.berlin.de/datensaetze/liste-der-h-ufigen-vornamen-2018) (Gegenprobe, Score 100): 14 maschinenlesbare Ressourcen, die geprüften CSV-Links funktionieren. **Bestätigt.**\n",
+                "\n",
+                "Daraus folgten zwei Korrekturen:\n",
+                "\n",
+                "- **Angebote statt nur Datensätze:** Der FIS-Broker führt Kartenbild (WMS) und Daten (WFS) eines Angebots oft als zwei Datensätze. Die Maschinenlesbarkeit wird deshalb zusätzlich pro Angebot ausgewertet (WMS/WFS-Zwillinge zusammengefasst). Der HVD-Befund hält auch auf Angebotsebene; der frühere Geodaten-Befund („59 % ohne maschinenlesbare Ressource“) wurde ersetzt. Zwillinge werden über den Namen ohne -wms-/-wfs-<Kennung> erkannt; Zwillinge mit anderem Namen fehlen, die Zahlen sind also eher eine Untergrenze. Der Score pro Datensatz bleibt unverändert.\n",
+                "- **Q2-Regel umbenannt:** „Aktualisiert vor Veröffentlichung“ heißt jetzt „Angezeigtes Aktualisierungsdatum liegt vor der Veröffentlichung“. Für Leser der Portalseite ist das ein Widerspruch; das Feld wird aber uneinheitlich genutzt (Datenstand vs. letzte Aktualisierung), und darin liegt der eigentliche Mangel.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 9
           }
         }
       ]
@@ -2108,7 +2238,7 @@
       "layout": [
         {
           "widget": {
-            "name": "filter_35",
+            "name": "filter_37",
             "queries": [
               {
                 "name": "f_source_label_ds_score",

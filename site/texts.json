@@ -1,0 +1,36 @@
+{
+  "_hinweis": "Einzige Quelle für diese Texte. Dashboard (dashboard/build_dashboard.py) und Ergebnisseite (site/app.js) lesen sie von hier. Platzhalter {schluessel|format} kommen aus site/data/findings.json; Formate: int, dec1, pct0, pct1. Auszeichnung: nur **fett** und [Text](https://…). Ob die Worte (z. B. 'Alle', 'fast jedes zweite') noch zu den Zahlen passen, prüft scripts/check_site.py.",
+  "findings": [
+    {
+      "label": "Stromnetz Berlin",
+      "text": "Alle {stromnetz_datasets|int} geernteten Datensätze verweisen nur auf tote Links (HTTP 404), obwohl ihre Metadaten überdurchschnittlich vollständig sind (Ø {stromnetz_avg_completeness|dec1} von 25 Punkten, gesamt {all_avg_completeness|dec1})."
+    },
+    {
+      "label": "EU-High-Value-Daten",
+      "text": "Fast jedes zweite High-Value-Angebot ({hvd_offers_not_mr|int} von {hvd_offers|int}) hat keine maschinenlesbare Variante – bei den übrigen nur etwa jedes siebte ({rest_offers_not_mr_share|pct1}). WMS- und WFS-Einträge desselben Angebots sind dabei zusammengefasst."
+    },
+    {
+      "label": "Geodaten aus dem FIS-Broker",
+      "text": "Der FIS-Broker legt Kartenbild (WMS) und Daten (WFS) meist als zwei getrennte Datensätze an ({fis_pairs|int} Paare). Bei {fis_offers_not_mr_share|pct0} der Geodaten-Angebote ({fis_offers_not_mr|int} von {fis_offers|int}) gibt es keine maschinenlesbare Variante."
+    }
+  ],
+  "q2_note": {
+    "label": "Regel „Angezeigtes Aktualisierungsdatum liegt vor der Veröffentlichung“",
+    "text": "Das Portal zeigt „Aktualisiert“ vor „Veröffentlicht“ an; das Feld wird uneinheitlich genutzt (Datenstand vs. letzte Aktualisierung)."
+  },
+  "q4c_note": "Ein Angebot fasst WMS- und WFS-Datensatz desselben Geodatenangebots zusammen. Maschinenlesbar, wenn mindestens ein Datensatz des Angebots eine maschinenlesbare Ressource hat. Der Score pro Datensatz bleibt unverändert.",
+  "stichprobe": {
+    "intro": "Am 16.11.2026 wurden fünf Datensätze im Portal von Hand gegen die berechneten Werte geprüft (Protokoll: docs/sampling-check.md im Repository). Die Werte pro Datensatz stimmten in allen fünf Fällen; zwei Fälle führten zu Korrekturen der Auswertung.",
+    "cases": [
+      "[Standardeinspeisprofil BHKW 2013](https://daten.berlin.de/datensaetze/standardeinspeisprofil-bhkw-2013-berlin) (Stromnetz, toter Link): Download-Link liefert im Portal tatsächlich 404. **Bestätigt.**",
+      "[ALKIS Berlin Gebäude – WMS](https://daten.berlin.de/datensaetze/alkis-berlin-gebaude-wms-986ea575) (High-Value, „nur Kartenbild“): Der Datensatz enthält wirklich nur WMS, aber es gibt einen eigenen Zwilling mit WFS (alkis-berlin-gebaude-wfs-728b368a). **Korrektur 1.**",
+      "[Los_5_2024](https://daten.berlin.de/datensaetze/los_5_2024-berlin) (Aktualisierungsdatum vor Veröffentlichung): Das Portal zeigt „Veröffentlicht 16.04.2024 · Aktualisiert 01.01.2024“. Die Regel bleibt. **Korrektur 2.**",
+      "[Haushaltsplan 2020/2021](https://daten.berlin.de/datensaetze/haushaltsplan-2020-2021) (kein Datum, nicht maschinenlesbar): kein Aktualisierungsdatum und keine maschinenlesbare Ressource. **Bestätigt.**",
+      "[Liste der häufigen Vornamen 2018](https://daten.berlin.de/datensaetze/liste-der-h-ufigen-vornamen-2018) (Gegenprobe, Score 100): 14 maschinenlesbare Ressourcen, die geprüften CSV-Links funktionieren. **Bestätigt.**"
+    ],
+    "corrections": [
+      "**Angebote statt nur Datensätze:** Der FIS-Broker führt Kartenbild (WMS) und Daten (WFS) eines Angebots oft als zwei Datensätze. Die Maschinenlesbarkeit wird deshalb zusätzlich pro Angebot ausgewertet (WMS/WFS-Zwillinge zusammengefasst). Der HVD-Befund hält auch auf Angebotsebene; der frühere Geodaten-Befund („59 % ohne maschinenlesbare Ressource“) wurde ersetzt. Zwillinge werden über den Namen ohne -wms-/-wfs-<Kennung> erkannt; Zwillinge mit anderem Namen fehlen, die Zahlen sind also eher eine Untergrenze. Der Score pro Datensatz bleibt unverändert.",
+      "**Q2-Regel umbenannt:** „Aktualisiert vor Veröffentlichung“ heißt jetzt „Angezeigtes Aktualisierungsdatum liegt vor der Veröffentlichung“. Für Leser der Portalseite ist das ein Widerspruch; das Feld wird aber uneinheitlich genutzt (Datenstand vs. letzte Aktualisierung), und darin liegt der eigentliche Mangel."
+    ]
+  }
+}
